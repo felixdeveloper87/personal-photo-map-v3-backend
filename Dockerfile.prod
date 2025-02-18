@@ -1,0 +1,54 @@
+# 1) Etapa de build - Compilando o código
+FROM maven:3.9.6-eclipse-temurin-21 AS build
+
+# Define o diretório de trabalho
+WORKDIR /app
+
+# Copia os arquivos do projeto para o container
+COPY photo-map/pom.xml ./pom.xml
+COPY photo-map/src ./src 
+
+# Realiza o build do JAR final
+RUN mvn clean package -DskipTests
+
+# 2) Etapa de execução - Apenas o necessário para rodar a aplicação
+FROM openjdk:21-jdk-slim
+
+# Define o diretório de trabalho
+WORKDIR /app
+
+# Copia o JAR gerado na etapa de build
+COPY --from=build /app/target/*.jar app.jar
+
+# Define a variável de ambiente para a porta padrão do Spring Boot
+ENV SERVER_PORT=8092
+
+# Expõe a porta da aplicação
+EXPOSE 8092
+
+# Comando para iniciar a aplicação no ambiente de produção
+CMD ["java", "-jar", "app.jar"]
+
+
+
+#Backend/
+# # 1) Etapa de build
+# FROM maven:3.9.6-eclipse-temurin-21 AS build
+# WORKDIR /app
+
+# # Copia os arquivos do projeto
+# COPY photo-map/pom.xml . 
+# COPY photo-map/src ./src
+
+# # Build do JAR
+# RUN mvn clean package -DskipTests
+
+# # 2) Etapa de execução
+# FROM openjdk:21-jdk-slim
+# WORKDIR /app
+
+# # Copia o JAR gerado
+# COPY --from=build /app/target/*.jar app.jar
+
+# EXPOSE 8092
+# ENTRYPOINT ["java", "-jar", "app.jar"]
