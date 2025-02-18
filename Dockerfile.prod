@@ -5,8 +5,8 @@ FROM maven:3.9.6-eclipse-temurin-21 AS build
 WORKDIR /app
 
 # Copia os arquivos do projeto para o container
-COPY photo-map/pom.xml ./pom.xml
-COPY photo-map/src ./src 
+COPY pom.xml ./pom.xml
+COPY src ./src 
 
 # Realiza o build do JAR final
 RUN mvn clean package -DskipTests
