@@ -107,6 +107,13 @@
 		<version>2.2.0</version>  <!-- Verifique a versão mais recente -->
 	</dependency>
 
+		<dependency>
+    <groupId>com.amazonaws</groupId>
+    <artifactId>aws-java-sdk-s3</artifactId>
+    <version>1.12.500</version> <!-- ou a versão mais recente -->
+</dependency>
+
+
 	<dependency>
 		<groupId>software.amazon.awssdk</groupId>
 		<artifactId>s3</artifactId>
