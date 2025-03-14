@@ -60,10 +60,8 @@ public class ImageService {
      */
     public void deleteImages(List<Image> images) {
         for (Image image : images) {
-            // Chama o método do S3Service para deletar o arquivo no S3
             s3Service.deleteFile(image.getFilePath());
         }
-        // Remove os registros do banco de dados
         imageRepository.deleteAll(images);
     }
 

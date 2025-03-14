@@ -8,53 +8,83 @@ import software.amazon.awssdk.services.s3.S3Client;
 import java.net.URL;
 import java.util.UUID;
 
+/**
+ * S3Service
+ * 
+ * Manages file uploads to and deletions from AWS S3.
+ * Provides two overloads for uploadFile(), allowing either:
+ * - auto-generated file names, or
+ * - custom-specified file names.
+ */
 @Service
 public class S3Service {
 
     private final S3Client s3Client;
 
-    // Construtor para injeção de dependência
+    /**
+     * Constructor for dependency injection.
+     *
+     * @param s3Client The AWS S3 client.
+     */
     public S3Service(S3Client s3Client) {
         this.s3Client = s3Client;
     }
 
     /**
-     * Faz o upload do arquivo para o S3 e retorna a URL pública.
+     * Uploads a file to S3 with an auto-generated key (UUID + original filename).
+     *
+     * @param file The MultipartFile to upload.
+     * @return The public URL of the uploaded file.
      */
     public String uploadFile(MultipartFile file) {
-        try {
-            // Gera um nome único para o arquivo
-            String fileName = UUID.randomUUID().toString() + "-" + file.getOriginalFilename();
+        // Generate a unique file name
+        String fileName = UUID.randomUUID().toString() + "-" + file.getOriginalFilename();
+        return uploadFile(file, fileName);
+    }
 
-            // Faz o upload do arquivo para o bucket S3
+    /**
+     * Uploads a file to S3 using a custom file name (key).
+     *
+     * @param file The MultipartFile to upload.
+     * @param customFileName The exact file name (key) to store in S3.
+     * @return The public URL of the uploaded file.
+     */
+    public String uploadFile(MultipartFile file, String customFileName) {
+        try {
+            // Perform the S3 upload with the specified key
             s3Client.putObject(
-                    b -> b.bucket(System.getenv("S3_BUCKET_NAME")).key(fileName),
-                    RequestBody.fromBytes(file.getBytes())
+                b -> b.bucket(System.getenv("S3_BUCKET_NAME")).key(customFileName),
+                RequestBody.fromBytes(file.getBytes())
             );
 
-            // Obtém a URL do arquivo
-            URL fileUrl = s3Client.utilities().getUrl(b -> b.bucket(System.getenv("S3_BUCKET_NAME")).key(fileName));
+            // Retrieve the public URL of the uploaded file
+            URL fileUrl = s3Client.utilities().getUrl(
+                b -> b.bucket(System.getenv("S3_BUCKET_NAME")).key(customFileName)
+            );
 
             return fileUrl.toString();
         } catch (Exception e) {
-            throw new RuntimeException("Falha ao enviar arquivo para o S3", e);
+            throw new RuntimeException("Failed to upload file to S3", e);
         }
     }
 
     /**
-     * Exclui o arquivo do S3 a partir da URL.
-     * OBS: Essa implementação pressupõe que a chave (key) do objeto é a parte final da URL.
-     * Em casos reais, pode ser interessante armazenar a key separadamente para facilitar a deleção.
+     * Deletes a file from S3 based on its full public URL.
+     * <p>
+     * Note: This assumes that the S3 object's key is everything after the last '/' in the URL.
+     * In production, you might store the key separately to avoid guesswork.
+     *
+     * @param fileUrl The full URL of the S3 object to delete.
      */
     public void deleteFile(String fileUrl) {
         try {
             String bucketName = System.getenv("S3_BUCKET_NAME");
-            // Extração simplificada da key: pega o que vem após a última barra
-            String key = fileUrl.substring(fileUrl.lastIndexOf("/") + 1);
+            // Extract the key from the URL by taking the substring after the last '/'
+            String key = fileUrl.substring(fileUrl.lastIndexOf('/') + 1);
 
             s3Client.deleteObject(b -> b.bucket(bucketName).key(key));
         } catch (Exception e) {
-            throw new RuntimeException("Erro ao deletar arquivo no S3", e);
+            throw new RuntimeException("Error deleting file on S3", e);
         }
     }
 }

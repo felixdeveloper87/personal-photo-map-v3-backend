@@ -13,6 +13,7 @@ public class AppUser {
     private String password;
     private String country;
     private String role;
+    private boolean premium = false;
 
     // Construtor vazio
     public AppUser() {
@@ -66,5 +67,12 @@ public class AppUser {
 
     public void setRole(String role) {
         this.role = role;
+    }
+    public boolean isPremium() {
+        return premium;
+    }
+
+    public void setPremium(boolean premium) {
+        this.premium = premium;
     }
 }
