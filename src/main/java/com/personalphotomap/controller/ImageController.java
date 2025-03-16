@@ -125,6 +125,7 @@ public class ImageController {
 
                 // 6. Persist image metadata to the database
                 Image image = new Image();
+                image.setUser(user);
                 image.setCountryId(countryId);
                 image.setFileName(fileName);
                 image.setFilePath(fileUrl); // Store the full S3 URL in the database
