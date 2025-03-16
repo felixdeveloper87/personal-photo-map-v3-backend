@@ -1,31 +1,22 @@
-package com.personalphotomap.model;
+package com.personalphotomap.dto;
 
-import java.util.ArrayList;
-import java.util.List;
+import com.personalphotomap.model.AppUser;
 
-import com.fasterxml.jackson.annotation.JsonManagedReference;
-import com.fasterxml.jackson.annotation.JsonProperty;
-
-import jakarta.persistence.*;
-
-@Entity
-@Table(name = "users")
-public class AppUser {
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+public class UserDTO {
     private Long id;
     private String fullname;
     private String email;
-    private String password;
     private String country;
     private String role;
-    private boolean premium = false;
-    
-    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
-    @JsonManagedReference
-    private List<Image> images = new ArrayList<>();
+    private boolean premium;
 
-    public AppUser() {
+    public UserDTO(AppUser user) {
+        this.id = user.getId();
+        this.fullname = user.getFullname();
+        this.email = user.getEmail();
+        this.country = user.getCountry();
+        this.role = user.getRole();
+        this.premium = user.isPremium();
     }
 
     public Long getId() {
@@ -52,14 +43,6 @@ public class AppUser {
         this.email = email;
     }
 
-    public String getPassword() {
-        return password;
-    }
-
-    public void setPassword(String password) {
-        this.password = password;
-    }
-
     public String getCountry() {
         return country;
     }
@@ -76,20 +59,11 @@ public class AppUser {
         this.role = role;
     }
 
-    @JsonProperty("premium")
     public boolean isPremium() {
         return premium;
     }
 
     public void setPremium(boolean premium) {
         this.premium = premium;
-    }
-
-    public List<Image> getImages() {
-        return images;
-    }
-
-    public void setImages(List<Image> images) {
-        this.images = images;
     }
 }

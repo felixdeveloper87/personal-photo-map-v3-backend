@@ -2,6 +2,7 @@ package com.personalphotomap.controller;
 
 import com.personalphotomap.model.AppUser;
 import com.personalphotomap.dto.RegisterRequest;
+import com.personalphotomap.dto.UserDTO;
 import com.personalphotomap.repository.UserRepository;
 import com.personalphotomap.security.JwtUtil;
 import com.personalphotomap.dto.LoginRequest;
@@ -12,6 +13,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -101,8 +103,10 @@ public class AuthController {
      * @return ResponseEntity containing a list of all users.
      */
     @GetMapping("/users")
-    public ResponseEntity<?> getAllUsers() {
-        return ResponseEntity.ok(userRepository.findAll());
+    public ResponseEntity<List<UserDTO>> getAllUsers() {
+        List<AppUser> users = userRepository.findAll();
+        List<UserDTO> userDTOs = users.stream().map(UserDTO::new).toList();
+        return ResponseEntity.ok(userDTOs);
     }
 
     /**
