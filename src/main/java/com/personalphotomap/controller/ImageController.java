@@ -1,9 +1,11 @@
 package com.personalphotomap.controller;
 
 import com.personalphotomap.model.Album;
+import com.personalphotomap.model.AppUser;
 import com.personalphotomap.model.Image;
 import com.personalphotomap.repository.AlbumRepository;
 import com.personalphotomap.repository.ImageRepository;
+import com.personalphotomap.repository.UserRepository;
 import com.personalphotomap.security.JwtUtil;
 import com.personalphotomap.service.S3Service;
 import org.apache.tika.Tika;
@@ -25,7 +27,8 @@ import java.util.*;
  * - Managing images in albums
  * - Retrieving images by country, year, or user
  *
- * Each endpoint ensures that only authenticated users can access or modify their own images.
+ * Each endpoint ensures that only authenticated users can access or modify
+ * their own images.
  */
 @RestController
 @RequestMapping("/api/images")
@@ -40,6 +43,9 @@ public class ImageController {
     @Autowired
     private JwtUtil jwtUtil;
 
+    @Autowired
+    private UserRepository userRepository;
+
     /**
      * S3Service handles all AWS S3 operations, including file upload and deletion.
      */
@@ -49,14 +55,17 @@ public class ImageController {
     /**
      * uploadImages
      *
-     * Uploads the provided list of JPEG images to AWS S3, saves metadata to the database,
+     * Uploads the provided list of JPEG images to AWS S3, saves metadata to the
+     * database,
      * and returns the public S3 URLs for each uploaded file.
      *
      * @param files     List of images to be uploaded (MultipartFile).
-     * @param countryId The country identifier for grouping images (e.g., "br" for Brazil).
+     * @param countryId The country identifier for grouping images (e.g., "br" for
+     *                  Brazil).
      * @param year      The year associated with the images (e.g., 2023).
      * @param token     JWT token for user authentication.
-     * @return HTTP response containing a success message and the list of uploaded image URLs.
+     * @return HTTP response containing a success message and the list of uploaded
+     *         image URLs.
      */
     @PostMapping(value = "/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<?> uploadImages(
@@ -74,6 +83,12 @@ public class ImageController {
         // 2. Check if the request has any files
         if (files == null || files.isEmpty()) {
             return ResponseEntity.badRequest().body("No files were provided.");
+        }
+
+        // 🔥 Busca o usuário pelo email no banco de dados
+        AppUser user = userRepository.findByEmail(email);
+        if (user == null) {
+            throw new RuntimeException("Usuário não encontrado");
         }
 
         // 3. Prepare variables to store results
@@ -112,9 +127,8 @@ public class ImageController {
                 Image image = new Image();
                 image.setCountryId(countryId);
                 image.setFileName(fileName);
-                image.setFilePath(fileUrl);    // Store the full S3 URL in the database
+                image.setFilePath(fileUrl); // Store the full S3 URL in the database
                 image.setYear(year);
-                image.setEmail(email);
                 imageRepository.save(image);
 
                 imageUrls.add(fileUrl);
@@ -162,8 +176,13 @@ public class ImageController {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid or missing JWT token.");
         }
 
+        AppUser user = userRepository.findByEmail(email);
+        if (user == null) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Usuário não encontrado.");
+        }
+
         // 2. Find all images that match the countryId and user
-        List<Image> images = imageRepository.findByCountryIdAndEmail(countryId, email);
+        List<Image> images = imageRepository.findByCountryIdAndUserId(countryId, user.getId());
         if (images.isEmpty()) {
             return ResponseEntity.ok("No images found for country " + countryId);
         }
@@ -198,7 +217,8 @@ public class ImageController {
     /**
      * deleteImagesByCountryAndYear
      *
-     * Deletes all images from a specific country and year. Removes the images from albums,
+     * Deletes all images from a specific country and year. Removes the images from
+     * albums,
      * deletes them from AWS S3, and finally removes them from the database.
      *
      * @param countryId The country identifier (e.g., "br").
@@ -219,8 +239,13 @@ public class ImageController {
                     .body("Invalid or missing JWT token.");
         }
 
+        AppUser user = userRepository.findByEmail(email);
+        if (user == null) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Usuário não encontrado.");
+        }
+
         // 2. Retrieve images based on country, year, and user
-        List<Image> images = imageRepository.findByCountryIdAndYearAndEmail(countryId, year, email);
+        List<Image> images = imageRepository.findByCountryIdAndYearAndUserId(countryId, year, user.getId());
         if (images.isEmpty()) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
                     .body("No images found for year " + year + ".");
@@ -257,7 +282,8 @@ public class ImageController {
      * deleteImageById
      *
      * Deletes a single image by its ID from AWS S3 and the database,
-     * ensuring the user has permission and removing the image from any albums first.
+     * ensuring the user has permission and removing the image from any albums
+     * first.
      *
      * @param id    The ID of the image to delete.
      * @param token JWT token for user authentication.
@@ -274,6 +300,11 @@ public class ImageController {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid or missing JWT token.");
         }
 
+        AppUser user = userRepository.findByEmail(email);
+        if (user == null) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Usuário não encontrado.");
+        }
+
         // 2. Check if the image exists and if the user owns it
         Optional<Image> optionalImage = imageRepository.findById(id);
         if (optionalImage.isEmpty()) {
@@ -281,9 +312,9 @@ public class ImageController {
         }
 
         Image image = optionalImage.get();
-        if (!image.getEmail().equals(email)) {
+        if (!image.getUser().getId().equals(user.getId())) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                    .body("You do not have permission to delete this image.");
+                    .body("Você não tem permissão para deletar esta imagem.");
         }
 
         try {
@@ -337,12 +368,17 @@ public class ImageController {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid or missing JWT token.");
         }
 
+        AppUser user = userRepository.findByEmail(email);
+        if (user == null) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Usuário não encontrado.");
+        }
+
         // 2. Retrieve all images to delete
         List<Image> imagesToDelete = imageRepository.findAllById(imageIds);
 
         // 3. Check ownership and remove from albums
         for (Image image : imagesToDelete) {
-            if (!image.getEmail().equals(email)) {
+            if (!image.getUser().getId().equals(user.getId())) {
                 return ResponseEntity.status(HttpStatus.FORBIDDEN)
                         .body("You do not have permission to delete some images.");
             }
@@ -373,7 +409,8 @@ public class ImageController {
     /**
      * getImagesByCountry
      *
-     * Retrieves all images for a given country that belong to the authenticated user.
+     * Retrieves all images for a given country that belong to the authenticated
+     * user.
      * The returned file paths are assumed to be full S3 URLs.
      *
      * @param countryId Country identifier.
@@ -391,8 +428,13 @@ public class ImageController {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(null);
         }
 
+        AppUser user = userRepository.findByEmail(email);
+        if (user == null) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(null);
+        }
+
         // 2. Fetch images from the database
-        List<Image> images = imageRepository.findByCountryIdAndEmail(countryId, email);
+        List<Image> images = imageRepository.findByCountryIdAndUserId(countryId, user.getId());
         if (images.isEmpty()) {
             return ResponseEntity.ok(Collections.emptyList());
         }
@@ -404,7 +446,8 @@ public class ImageController {
     /**
      * getCountriesWithPhotos
      *
-     * Retrieves a list of distinct country IDs where the authenticated user has images.
+     * Retrieves a list of distinct country IDs where the authenticated user has
+     * images.
      *
      * @param token JWT token for user authentication.
      * @return A list of country IDs.
@@ -416,7 +459,12 @@ public class ImageController {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(null);
         }
 
-        List<String> countries = imageRepository.findDistinctCountryIdsByEmail(email);
+        AppUser user = userRepository.findByEmail(email);
+        if (user == null) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(null);
+        }
+
+        List<String> countries = imageRepository.findDistinctCountryIdsByUserId(user.getId());
         if (countries.isEmpty()) {
             return ResponseEntity.ok(Collections.emptyList());
         }
@@ -439,14 +487,20 @@ public class ImageController {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(null);
         }
 
-        List<Integer> years = imageRepository.findDistinctYearsByUser(email);
+        AppUser user = userRepository.findByEmail(email);
+        if (user == null) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(null);
+        }
+
+        List<Integer> years = imageRepository.findDistinctYearsByUserId(user.getId());
         return ResponseEntity.ok(years);
     }
 
     /**
      * getAllImages
      *
-     * Retrieves all images belonging to the authenticated user, optionally filtered by year.
+     * Retrieves all images belonging to the authenticated user, optionally filtered
+     * by year.
      *
      * @param token JWT token for user authentication.
      * @param year  (Optional) year filter for images.
@@ -462,11 +516,18 @@ public class ImageController {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(null);
         }
 
+        AppUser user = userRepository.findByEmail(email);
+        if (user == null) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(null);
+        }
+
         List<Image> images;
         if (year != null) {
-            images = imageRepository.findByEmailAndYear(email, year);
+            // 🔥 Busca as imagens do usuário por ano
+            images = imageRepository.findByUserIdAndYear(user.getId(), year);
         } else {
-            images = imageRepository.findByEmailOrderByUploadDateDesc(email);
+            // 🔥 Busca todas as imagens do usuário ordenadas pela data de upload
+            images = imageRepository.findByUserIdOrderByUploadDateDesc(user.getId());
         }
 
         return ResponseEntity.ok(images);
@@ -475,13 +536,15 @@ public class ImageController {
     /**
      * getYearsByCountry
      *
-     * Retrieves all distinct years for a specific country that belong to the authenticated user.
+     * Retrieves all distinct years for a specific country that belong to the
+     * authenticated user.
      *
      * @param countryId Country identifier.
      * @param token     JWT token for user authentication.
-     * @return A list of years in which the user has images for the specified country.
+     * @return A list of years in which the user has images for the specified
+     *         country.
      */
-    @GetMapping("/{countryId}/years")
+    @GetMapping("/{countryId}/available-years")
     public ResponseEntity<List<Integer>> getYearsByCountry(
             @PathVariable String countryId,
             @RequestHeader(value = "Authorization") String token) {
@@ -491,14 +554,20 @@ public class ImageController {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(null);
         }
 
-        List<Integer> years = imageRepository.findDistinctYearsByCountryIdAndEmail(countryId, email);
+        AppUser user = userRepository.findByEmail(email);
+        if (user == null) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(null);
+        }
+
+        List<Integer> years = imageRepository.findDistinctYearsByCountryIdAndUserId(countryId, user.getId());
         return ResponseEntity.ok(years);
     }
 
     /**
      * getImagesByCountryAndYear
      *
-     * Retrieves all images for a given country and year belonging to the authenticated user.
+     * Retrieves all images for a given country and year belonging to the
+     * authenticated user.
      *
      * @param countryId Country identifier.
      * @param year      Year of the images.
@@ -516,14 +585,20 @@ public class ImageController {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(null);
         }
 
-        List<Image> images = imageRepository.findByCountryIdAndYearAndEmail(countryId, year, email);
+        AppUser user = userRepository.findByEmail(email);
+        if (user == null) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(null);
+        }
+
+        List<Image> images = imageRepository.findByCountryIdAndYearAndUserId(countryId, year, user.getId());
         return ResponseEntity.ok(images);
     }
 
     /**
      * countUserPhotosAndCountries
      *
-     * Returns the total count of photos and distinct countries for the authenticated user.
+     * Returns the total count of photos and distinct countries for the
+     * authenticated user.
      *
      * @param token JWT token for user authentication.
      * @return A JSON response with "photoCount" and "countryCount" fields.
@@ -537,8 +612,13 @@ public class ImageController {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(null);
         }
 
-        long photoCount = imageRepository.countByEmail(email);
-        long countryCount = imageRepository.countDistinctCountryByEmail(email);
+        AppUser user = userRepository.findByEmail(email);
+        if (user == null) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(null);
+        }
+
+        long photoCount = imageRepository.countByUserId(user.getId());
+        long countryCount = imageRepository.countDistinctCountryByUserId(user.getId());
 
         Map<String, Object> response = new HashMap<>();
         response.put("photoCount", photoCount);

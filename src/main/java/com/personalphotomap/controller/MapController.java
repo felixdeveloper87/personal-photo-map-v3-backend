@@ -1,6 +1,9 @@
 package com.personalphotomap.controller;
+
+import com.personalphotomap.model.AppUser;
 import com.personalphotomap.model.Image;
 import com.personalphotomap.repository.ImageRepository;
+import com.personalphotomap.repository.UserRepository;
 import com.personalphotomap.security.JwtUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -14,23 +17,33 @@ import java.util.stream.Collectors;
 public class MapController {
 
     @Autowired
-    private ImageRepository imageRepository;  // Injetando o repositório de imagens
+    private ImageRepository imageRepository; // Injetando o repositório de imagens
 
     @Autowired
-    private JwtUtil jwtUtil;  // Injetando o utilitário JWT
+    private JwtUtil jwtUtil; // Injetando o utilitário JWT
+
+    @Autowired
+    private UserRepository userRepository;
 
     @GetMapping("/{countryId}")
-    public ResponseEntity<?> getMapData(@PathVariable String countryId, @RequestHeader(value = "Authorization", required = false) String token) {
+    public ResponseEntity<?> getMapData(@PathVariable String countryId,
+            @RequestHeader(value = "Authorization", required = false) String token) {
         // Verifica se o token está presente e é válido
         if (token == null || !token.startsWith("Bearer ") || !jwtUtil.validateToken(token.substring(7), null)) {
-            return ResponseEntity.ok("Mapa sem fotos para " + countryId);  // Responde sem fotos se o usuário não estiver autenticado
+            return ResponseEntity.ok("Mapa sem fotos para " + countryId);
         }
 
-        // Extrai o nome do usuário do token JWT
-        String email = jwtUtil.extractUsername(token.substring(7));  // Removendo "Bearer " antes de extrair o username
+        // Extrai o email do usuário do token JWT
+        String email = jwtUtil.extractUsername(token.substring(7));
 
-        // Carrega as imagens do usuário com base no countryId e username
-        List<Image> images = imageRepository.findByCountryIdAndEmail(countryId, email);
+        // 🔥 Corrigindo o erro: Buscando o usuário antes de usar user.getId()
+        AppUser user = userRepository.findByEmail(email);
+        if (user == null) {
+            return ResponseEntity.status(404).body("Usuário não encontrado.");
+        }
+
+        // Carrega as imagens do usuário com base no countryId e userId
+        List<Image> images = imageRepository.findByCountryIdAndUserId(countryId, user.getId());
 
         if (images.isEmpty()) {
             return ResponseEntity.ok("Nenhuma foto encontrada para este usuário em " + countryId);
