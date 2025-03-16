@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import com.fasterxml.jackson.annotation.JsonManagedReference;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 import jakarta.persistence.*;
 
@@ -75,6 +76,7 @@ public class AppUser {
         this.role = role;
     }
 
+    @JsonProperty("premium")
     public boolean isPremium() {
         return premium;
     }
