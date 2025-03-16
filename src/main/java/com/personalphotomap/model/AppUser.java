@@ -1,12 +1,17 @@
 package com.personalphotomap.model;
 
+import java.util.ArrayList;
+import java.util.List;
+
+import com.fasterxml.jackson.annotation.JsonManagedReference;
+
 import jakarta.persistence.*;
 
 @Entity
 @Table(name = "users")
 public class AppUser {
     @Id
-    @GeneratedValue
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     private String fullname;
     private String email;
@@ -15,11 +20,12 @@ public class AppUser {
     private String role;
     private boolean premium = false;
 
-    // Construtor vazio
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonManagedReference
+    private List<Image> images = new ArrayList<>();
+
     public AppUser() {
     }
-
-    // Getters e Setters
 
     public Long getId() {
         return id;
@@ -68,11 +74,20 @@ public class AppUser {
     public void setRole(String role) {
         this.role = role;
     }
+
     public boolean isPremium() {
         return premium;
     }
 
     public void setPremium(boolean premium) {
         this.premium = premium;
+    }
+
+    public List<Image> getImages() {
+        return images;
+    }
+
+    public void setImages(List<Image> images) {
+        this.images = images;
     }
 }

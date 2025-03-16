@@ -1,12 +1,16 @@
 package com.personalphotomap.model;
 
 import jakarta.persistence.*;
-
 import java.time.LocalDateTime;
-import java.util.Date;
+
+import com.fasterxml.jackson.annotation.JsonBackReference;
 
 @Entity
-@Table(name = "images")
+@Table(name = "images", indexes = {
+        @Index(name = "idx_images_user", columnList = "user_id"),
+        @Index(name = "idx_images_country", columnList = "countryId"),
+        @Index(name = "idx_images_year", columnList = "year")
+})
 public class Image {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -14,29 +18,29 @@ public class Image {
 
     private String countryId;
     private String fileName;
-    private String email;
     private String filePath;
     private int year;
 
     @Column(name = "upload_date", updatable = false)
     private LocalDateTime uploadDate;
 
-    // Construtor vazio
+    @ManyToOne
+    @JoinColumn(name = "user_id", nullable = false) // Define a chave estrangeira
+    @JsonBackReference
+    private AppUser user; // Associação com AppUser
+
     public Image() {
     }
 
-    // Construtor completo
-    public Image(Long id, String countryId, String fileName, String email, String filePath, int year) {
+    public Image(Long id, String countryId, String fileName, AppUser user, String filePath, int year) {
         this.id = id;
         this.countryId = countryId;
         this.fileName = fileName;
-        this.email = email;
+        this.user = user;
         this.filePath = filePath;
         this.year = year;
-
     }
 
-    // Getters e Setters
     public Long getId() {
         return id;
     }
@@ -60,15 +64,6 @@ public class Image {
     public void setFileName(String fileName) {
         this.fileName = fileName;
     }
-
-    public String getEmail() {
-        return email; // Atualize o getter
-    }
-
-    public void setEmail(String email) {
-        this.email = email; // Atualize o setter
-    }
-
 
     public String getFilePath() {
         return filePath;
@@ -94,9 +89,16 @@ public class Image {
         this.uploadDate = uploadDate;
     }
 
-    // Método chamado automaticamente antes de persistir um novo registro
+    public AppUser getUser() {
+        return user;
+    }
+
+    public void setUser(AppUser user) {
+        this.user = user;
+    }
+
     @PrePersist
     protected void onCreate() {
-        this.uploadDate = LocalDateTime.now();  // Define a data e hora atuais
+        this.uploadDate = LocalDateTime.now();
     }
 }

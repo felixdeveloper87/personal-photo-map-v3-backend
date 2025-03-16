@@ -37,8 +37,4 @@ public class UserService {
     public Optional<AppUser> findByEmail(String email) {
         return Optional.ofNullable(userRepository.findByEmail(email));
     }
-
-//    public Optional<AppUser> findByUsername(String username) {
-//        return Optional.ofNullable(userRepository.findByUsername(username));
-//    }
 }

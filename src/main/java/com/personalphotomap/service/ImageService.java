@@ -1,7 +1,10 @@
 package com.personalphotomap.service;
 
+import com.personalphotomap.model.AppUser;
 import com.personalphotomap.model.Image;
 import com.personalphotomap.repository.ImageRepository;
+import com.personalphotomap.repository.UserRepository;
+
 import org.apache.tika.Tika;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -20,11 +23,16 @@ public class ImageService {
     @Autowired
     private S3Service s3Service; // Injeção do S3Service para realizar o upload e a deleção no S3
 
+    @Autowired
+    private UserRepository userRepository;
+
     /**
-     * Realiza o upload das imagens utilizando o S3 e salva os metadados no banco de dados.
+     * Realiza o upload das imagens utilizando o S3 e salva os metadados no banco de
+     * dados.
      * Apenas arquivos do tipo image/jpeg são considerados.
      */
-    public List<String> uploadImages(List<MultipartFile> files, String countryId, int year, String username) throws IOException {
+    public List<String> uploadImages(List<MultipartFile> files, String countryId, int year, String username)
+            throws IOException {
         List<String> imageUrls = new ArrayList<>();
         Tika tika = new Tika();
 
@@ -45,9 +53,8 @@ public class ImageService {
             Image image = new Image();
             image.setCountryId(countryId);
             image.setFileName(file.getOriginalFilename()); // ou gere um nome se preferir
-            image.setFilePath(fileUrl);  // Armazena a URL do S3
+            image.setFilePath(fileUrl); // Armazena a URL do S3
             image.setYear(year);
-            image.setEmail(username);
 
             imageRepository.save(image);
             imageUrls.add(fileUrl);
@@ -69,6 +76,11 @@ public class ImageService {
      * Exemplo de método para buscar imagens por país, ano e email.
      */
     public List<Image> getImagesByCountryAndYear(String countryId, int year, String email) {
-        return imageRepository.findByCountryIdAndYearAndEmail(countryId, year, email);
+        AppUser user = userRepository.findByEmail(email); // Buscar usuário pelo email
+        if (user == null) {
+            throw new RuntimeException("Usuário não encontrado com o email: " + email);
+        }
+
+        return imageRepository.findByUserAndCountryIdAndYear(user, countryId, year);
     }
 }
