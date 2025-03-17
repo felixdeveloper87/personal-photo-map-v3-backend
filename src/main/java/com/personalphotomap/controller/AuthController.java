@@ -1,11 +1,14 @@
 package com.personalphotomap.controller;
 
 import com.personalphotomap.model.AppUser;
-import com.personalphotomap.dto.RegisterRequest;
+import com.personalphotomap.dto.RegisterRequestDTO;
 import com.personalphotomap.dto.UserDTO;
 import com.personalphotomap.repository.UserRepository;
 import com.personalphotomap.security.JwtUtil;
-import com.personalphotomap.dto.LoginRequest;
+
+import jakarta.validation.Valid;
+
+import com.personalphotomap.dto.LoginRequestDTO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -45,7 +48,7 @@ public class AuthController {
      * @return ResponseEntity with JWT token and user details if successful, or error message if authentication fails.
      */
     @PostMapping("/login")
-    public ResponseEntity<?> login(@RequestBody LoginRequest loginRequest) {
+    public ResponseEntity<?> login(@Valid @RequestBody LoginRequestDTO loginRequest) {
         // Find the user by email
         AppUser user = userRepository.findByEmail(loginRequest.getEmail());
 
@@ -77,7 +80,7 @@ public class AuthController {
      * @return ResponseEntity with success message or error if email is already registered.
      */
     @PostMapping("/register")
-    public ResponseEntity<?> register(@RequestBody RegisterRequest registerRequest) {
+    public ResponseEntity<?> register(@Valid @RequestBody RegisterRequestDTO registerRequest) {
         // Check if email is already registered
         if (userRepository.findByEmail(registerRequest.getEmail()) != null) {
             return ResponseEntity.status(HttpStatus.CONFLICT).body("Email is already in use.");
