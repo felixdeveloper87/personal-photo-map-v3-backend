@@ -17,6 +17,11 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
+import java.util.stream.Collectors;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * ImageController
@@ -34,11 +39,16 @@ import java.util.*;
 @RequestMapping("/api/images")
 public class ImageController {
 
+    private static final Logger logger = LoggerFactory.getLogger(ImageController.class);
+
     @Autowired
     private ImageRepository imageRepository;
 
     @Autowired
     private AlbumRepository albumRepository;
+
+    @Autowired
+    private ImageUploadService imageUploadService;
 
     @Autowired
     private JwtUtil jwtUtil;
@@ -74,86 +84,52 @@ public class ImageController {
             @RequestParam("year") int year,
             @RequestHeader(value = "Authorization") String token) {
 
-        // 1. Validate JWT token and extract user's email
         String email = jwtUtil.extractUsernameFromToken(token);
         if (email == null) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid or missing JWT token.");
         }
 
-        // 2. Check if the request has any files
         if (files == null || files.isEmpty()) {
             return ResponseEntity.badRequest().body("No files were provided.");
         }
 
-        // 🔥 Busca o usuário pelo email no banco de dados
+        logger.info("📤 Iniciando upload de {} imagens para o país {} no ano {}", files.size(), countryId, year);
+        System.out.println(
+                "📤 [DEBUG] Iniciando upload de " + files.size() + " imagens para " + countryId + " no ano " + year);
+
         AppUser user = userRepository.findByEmail(email);
         if (user == null) {
-            throw new RuntimeException("Usuário não encontrado");
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Usuário não encontrado.");
         }
 
-        // 3. Prepare variables to store results
-        List<String> imageUrls = new ArrayList<>();
-        List<String> invalidFiles = new ArrayList<>();
-        Tika tika = new Tika(); // Used to detect MIME type
-
-        try {
-            // 4. Iterate through each file and upload valid JPEG images to S3
-            for (MultipartFile file : files) {
-                if (file.isEmpty()) {
-                    continue;
-                }
-
-                // Validate MIME type is JPEG
-                String mimeType = tika.detect(file.getInputStream());
-                if (!mimeType.equalsIgnoreCase("image/jpeg")) {
-                    invalidFiles.add(file.getOriginalFilename());
-                    continue;
-                }
-
-                // Create a unique filename for S3
-                String fileName = UUID.randomUUID().toString() + "_"
-                        + StringUtils.cleanPath(file.getOriginalFilename());
-
-                // 5. Upload file to AWS S3 using S3Service
-                String fileUrl;
-                try {
-                    fileUrl = s3Service.uploadFile(file, fileName); // You might pass countryId or other info if needed
-                } catch (Exception e) {
-                    return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                            .body("Error uploading to S3: " + e.getMessage());
-                }
-
-                // 6. Persist image metadata to the database
-                Image image = new Image();
-                image.setUser(user);
-                image.setCountryId(countryId);
-                image.setFileName(fileName);
-                image.setFilePath(fileUrl); // Store the full S3 URL in the database
-                image.setYear(year);
-                imageRepository.save(image);
-
-                imageUrls.add(fileUrl);
-            }
-
-            // 7. Check if any valid images were uploaded
-            if (imageUrls.isEmpty()) {
-                return ResponseEntity.badRequest().body("No valid JPEG images were uploaded.");
-            }
-
-            // Optionally return info about invalid files
-            Map<String, Object> response = new HashMap<>();
-            response.put("message", "Images uploaded successfully.");
-            response.put("imageUrls", imageUrls);
-            if (!invalidFiles.isEmpty()) {
-                response.put("invalidFiles", invalidFiles);
-            }
-
-            return ResponseEntity.ok(response);
-
-        } catch (IOException e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("Error processing images: " + e.getMessage());
+        // Criar lista de tarefas assíncronas para processar as imagens
+        List<CompletableFuture<String>> futures = new ArrayList<>();
+        for (MultipartFile file : files) {
+            futures.add(imageUploadService.uploadAndSaveImage(file, countryId, year, user));
         }
+
+        // Aguarda todas as operações assíncronas terminarem
+        CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).join();
+
+        // Coleta as URLs das imagens processadas
+        List<String> imageUrls = futures.stream()
+                .map(CompletableFuture::join)
+                .filter(Objects::nonNull) // Remove valores nulos (arquivos inválidos)
+                .collect(Collectors.toList());
+
+        logger.info("🎉 Upload de imagens finalizado. {} imagens processadas.", imageUrls.size());
+        System.out.println("🎉 [DEBUG] Upload finalizado! " + imageUrls.size() + " imagens foram processadas.");
+
+        if (imageUrls.isEmpty()) {
+            return ResponseEntity.badRequest().body("No valid JPEG images were uploaded.");
+        }
+
+        // Resposta final
+        Map<String, Object> response = new HashMap<>();
+        response.put("message", "Images uploaded successfully.");
+        response.put("imageUrls", imageUrls);
+
+        return ResponseEntity.ok(response);
     }
 
     /**
