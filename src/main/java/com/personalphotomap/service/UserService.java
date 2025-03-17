@@ -1,7 +1,7 @@
 package com.personalphotomap.service;
 
 import com.personalphotomap.model.AppUser;
-import com.personalphotomap.dto.RegisterRequest;
+import com.personalphotomap.dto.RegisterRequestDTO;
 import com.personalphotomap.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -19,7 +19,7 @@ public class UserService {
     private PasswordEncoder passwordEncoder;
 
     // Método para registrar novo usuário
-    public String registerUser(RegisterRequest registerRequest) {
+    public String registerUser(RegisterRequestDTO registerRequest) {
 
         if (userRepository.findByEmail(registerRequest.getEmail()) != null) {
             return "Email já está em uso.";
