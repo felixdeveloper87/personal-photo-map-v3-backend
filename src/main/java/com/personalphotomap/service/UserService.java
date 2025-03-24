@@ -1,11 +1,16 @@
 package com.personalphotomap.service;
 
 import com.personalphotomap.model.AppUser;
+import com.personalphotomap.model.Image;
 import com.personalphotomap.dto.LoginRequestDTO;
 import com.personalphotomap.dto.RegisterRequestDTO;
 import com.personalphotomap.dto.UserDTO;
+import com.personalphotomap.repository.ImageRepository;
 import com.personalphotomap.repository.UserRepository;
 import com.personalphotomap.security.JwtUtil;
+
+import jakarta.transaction.Transactional;
+
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -26,13 +31,17 @@ public class UserService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtUtil jwtUtil;
+    private final ImageRepository imageRepository;
+    private final ImageDeleteService imageDeleteService;
 
     public UserService(UserRepository userRepository,
             PasswordEncoder passwordEncoder,
-            JwtUtil jwtUtil) {
+            JwtUtil jwtUtil, ImageRepository imageRepository, ImageDeleteService imageDeleteService) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtUtil = jwtUtil;
+        this.imageRepository = imageRepository;
+        this.imageDeleteService = imageDeleteService;
     }
 
     /**
@@ -153,6 +162,30 @@ public class UserService {
         }
         userRepository.deleteById(id);
         return true;
+    }
+
+    @Transactional
+    public boolean deleteUserAndImagesById(Long userId) {
+        Optional<AppUser> userOptional = userRepository.findById(userId);
+        if (userOptional.isPresent()) {
+            AppUser user = userOptional.get();
+            List<Image> images = imageRepository.findByUserId(userId);
+
+            images.forEach(image -> imageDeleteService.deleteImage(image));
+
+            userRepository.delete(user);
+            return true;
+        }
+        return false;
+    }
+
+    @Transactional
+    public void deleteAllUsersAndImages() {
+        List<Image> allImages = imageRepository.findAll();
+
+        allImages.forEach(image -> imageDeleteService.deleteImage(image));
+
+        userRepository.deleteAll();
     }
 
 }

@@ -63,7 +63,7 @@ public class AuthController {
         return ResponseEntity.ok(result);
     }
 
-     /**
+    /**
      * Retrieves a list of all users (for admin or diagnostic use).
      *
      * @return List of UserDTOs
@@ -87,6 +87,33 @@ public class AuthController {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body("User not found.");
         }
         return ResponseEntity.ok("User successfully deleted.");
+    }
+
+    /**
+     * Deletes a user and all their associated images by user ID.
+     *
+     * @param id The ID of the user to be deleted
+     * @return A success or not-found response
+     */
+    @DeleteMapping("/users/{id}/with-images")
+    public ResponseEntity<?> deleteUserWithImages(@PathVariable Long id) {
+        boolean deleted = userService.deleteUserAndImagesById(id);
+        if (!deleted) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("User not found.");
+        }
+        return ResponseEntity.ok("User and their images successfully deleted.");
+    }
+
+    /**
+     * Deletes all users and all images from the system.
+     * Use with caution. Intended for system reset or admin use.
+     *
+     * @return A success confirmation
+     */
+    @DeleteMapping("/users/delete-all")
+    public ResponseEntity<?> deleteAllUsersAndImages() {
+        userService.deleteAllUsersAndImages();
+        return ResponseEntity.ok("All users and their images have been deleted.");
     }
 
     /**
