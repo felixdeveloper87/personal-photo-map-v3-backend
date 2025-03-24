@@ -1,4 +1,4 @@
-package com.personalphotomap.controller;
+package com.personalphotomap.service;
 
 import org.apache.tika.Tika;
 import org.slf4j.Logger;
@@ -12,7 +12,6 @@ import org.springframework.util.StringUtils;
 import com.personalphotomap.model.AppUser;
 import com.personalphotomap.model.Image;
 import com.personalphotomap.repository.ImageRepository;
-import com.personalphotomap.service.S3Service;
 
 import java.io.IOException;
 import java.util.UUID;
@@ -77,6 +76,21 @@ public class ImageUploadService {
             logger.error("❌ Erro no upload da imagem: {}", file.getOriginalFilename(), e);
             System.err.println(
                     "❌ [DEBUG] Erro ao processar: " + file.getOriginalFilename() + " | Erro: " + e.getMessage());
+            return CompletableFuture.failedFuture(e);
+        }
+    }
+
+    @Async // 🔥 Cada imagem será deletada em uma thread separada
+    public CompletableFuture<Void> deleteImageAsync(Image image) {
+        String threadName = Thread.currentThread().getName();
+        try {
+            logger.info("🗑️ Deletando imagem: {} na thread: {}", image.getFilePath(), threadName);
+            s3Service.deleteFile(image.getFilePath()); // Deletar do S3
+            imageRepository.delete(image); // Remover do banco de dados
+            logger.info("✅ Imagem deletada com sucesso: {} | Thread: {}", image.getFilePath(), threadName);
+            return CompletableFuture.completedFuture(null);
+        } catch (Exception e) {
+            logger.error("❌ Erro ao deletar a imagem: {} | Thread: {}", image.getFilePath(), threadName, e);
             return CompletableFuture.failedFuture(e);
         }
     }

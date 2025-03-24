@@ -2,6 +2,10 @@ package com.personalphotomap.dto;
 
 import com.personalphotomap.model.AppUser;
 
+/**
+ * DTO used to transfer user data to the client side in a safe and controlled format.
+ * Prevents exposing sensitive internal information (like passwords or tokens).
+ */
 public class UserDTO {
     private Long id;
     private String fullname;
@@ -10,6 +14,11 @@ public class UserDTO {
     private String role;
     private boolean premium;
 
+    /**
+     * Constructs a UserDTO from the AppUser entity.
+     *
+     * @param user The AppUser entity to convert into a DTO.
+     */
     public UserDTO(AppUser user) {
         this.id = user.getId();
         this.fullname = user.getFullname();
@@ -18,6 +27,8 @@ public class UserDTO {
         this.role = user.getRole();
         this.premium = user.isPremium();
     }
+
+    // Getters and Setters
 
     public Long getId() {
         return id;

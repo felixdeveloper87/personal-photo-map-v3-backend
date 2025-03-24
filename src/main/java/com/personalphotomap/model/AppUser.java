@@ -1,32 +1,56 @@
 package com.personalphotomap.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
+import jakarta.persistence.*;
+
 import java.util.ArrayList;
 import java.util.List;
 
-import com.fasterxml.jackson.annotation.JsonManagedReference;
-import com.fasterxml.jackson.annotation.JsonProperty;
-
-import jakarta.persistence.*;
-
+/**
+ * Entity representing an application user.
+ * Each user has credentials, optional premium status, and owns multiple images.
+ */
 @Entity
 @Table(name = "users")
 public class AppUser {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
+    @Column(nullable = false)
     private String fullname;
+
+    @Column(nullable = false, unique = true)
     private String email;
+
+    @Column(nullable = false)
     private String password;
+
     private String country;
+
     private String role;
+
     private boolean premium = false;
-    
+
+    /**
+     * One-to-many relationship with images uploaded by the user.
+     */
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     @JsonManagedReference
+    @JsonIgnore
     private List<Image> images = new ArrayList<>();
 
-    public AppUser() {
-    }
+    // ─────────────────────────────────────────────────────────────
+    // Constructors
+    // ─────────────────────────────────────────────────────────────
+
+    public AppUser() {}
+
+    // ─────────────────────────────────────────────────────────────
+    // Getters and Setters
+    // ─────────────────────────────────────────────────────────────
 
     public Long getId() {
         return id;
@@ -76,7 +100,6 @@ public class AppUser {
         this.role = role;
     }
 
-    @JsonProperty("premium")
     public boolean isPremium() {
         return premium;
     }

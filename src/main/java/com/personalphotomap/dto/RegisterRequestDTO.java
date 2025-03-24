@@ -4,27 +4,36 @@ import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 
+/**
+ * DTO used to receive registration data from the client.
+ * Includes validation constraints to ensure required fields and valid formats.
+ */
 public class RegisterRequestDTO {
 
-    @NotBlank(message = "O nome completo não pode estar vazio")
-    @Size(min = 3, message = "O nome completo deve ter pelo menos 3 caracteres")
+    // Full name must not be blank and must have at least 3 characters
+    @NotBlank(message = "Full name cannot be empty")
+    @Size(min = 3, message = "Full name must be at least 3 characters long")
     private String fullname;
 
-    @NotBlank(message = "O email não pode estar vazio")
-    @Email(message = "Formato de email inválido")
+    // Email must not be blank and must follow a valid email format
+    @NotBlank(message = "Email cannot be empty")
+    @Email(message = "Invalid email format")
     private String email;
 
-    @NotBlank(message = "A senha não pode estar vazia")
-    @Size(min = 6, message = "A senha deve ter pelo menos 6 caracteres")
+    // Password must not be blank and must have at least 6 characters
+    @NotBlank(message = "Password cannot be empty")
+    @Size(min = 6, message = "Password must be at least 6 characters long")
     private String password;
 
-    @NotBlank(message = "O país não pode estar vazio")
+    // Country must not be blank
+    @NotBlank(message = "Country cannot be empty")
     private String country;
 
-    // Construtores
+    // Default constructor required by frameworks
     public RegisterRequestDTO() {
     }
 
+    // Constructor used for manual instantiation
     public RegisterRequestDTO(String fullname, String email, String password, String country) {
         this.fullname = fullname;
         this.email = email;
@@ -32,7 +41,8 @@ public class RegisterRequestDTO {
         this.country = country;
     }
 
-    // Getters e Setters
+    // Getters and Setters
+
     public String getFullname() {
         return fullname;
     }

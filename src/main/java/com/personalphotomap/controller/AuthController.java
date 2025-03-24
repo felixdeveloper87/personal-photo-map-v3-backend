@@ -1,163 +1,111 @@
 package com.personalphotomap.controller;
 
-import com.personalphotomap.model.AppUser;
 import com.personalphotomap.dto.RegisterRequestDTO;
 import com.personalphotomap.dto.UserDTO;
-import com.personalphotomap.repository.UserRepository;
-import com.personalphotomap.security.JwtUtil;
-
-import jakarta.validation.Valid;
-
+import com.personalphotomap.service.UserService;
 import com.personalphotomap.dto.LoginRequestDTO;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
+import jakarta.validation.Valid;
 
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 /**
- * AuthController
- * 
- * This controller handles user authentication, registration, and user management operations.
- * It provides endpoints for user login, registration, retrieving users, and updating user roles.
+ * Authentication controller responsible for handling user login,
+ * registration, role updates, and user administration functionalities.
  */
 @RestController
-@RequestMapping("/api/auth") // Base URL for authentication-related routes
+@RequestMapping("/api/auth")
 public class AuthController {
 
-    @Autowired
-    private UserRepository userRepository; // Repository for user-related database operations
+    private final UserService userService;
 
-    @Autowired
-    private JwtUtil jwtUtil; // Utility class for generating and validating JWT tokens
+    public AuthController(
+            UserService userService) {
 
-    @Autowired
-    private PasswordEncoder passwordEncoder; // Password encryption utility
+        this.userService = userService;
+    }
 
     /**
-     * Handles user login authentication.
+     * Authenticates the user with email and password.
+     * Returns a JWT token and user info on success.
      *
-     * - Checks if the user exists and verifies the password.
-     * - If successful, generates a JWT token and returns user details.
-     *
-     * @param loginRequest Request body containing user email and password.
-     * @return ResponseEntity with JWT token and user details if successful, or error message if authentication fails.
+     * @param loginRequest DTO with login credentials
+     * @return ResponseEntity with JWT and user info or 401 error
      */
     @PostMapping("/login")
     public ResponseEntity<?> login(@Valid @RequestBody LoginRequestDTO loginRequest) {
-        // Find the user by email
-        AppUser user = userRepository.findByEmail(loginRequest.getEmail());
-
-        // Validate user credentials
-        if (user == null || !passwordEncoder.matches(loginRequest.getPassword(), user.getPassword())) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid credentials");
+        try {
+            Map<String, String> response = userService.authenticateUser(loginRequest);
+            return ResponseEntity.ok(response);
+        } catch (SecurityException e) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(e.getMessage());
         }
-
-        // Generate a JWT token upon successful authentication
-        String token = jwtUtil.generateToken(user.getEmail());
-
-        // Prepare response with token and user details
-        Map<String, String> response = new HashMap<>();
-        response.put("token", token);
-        response.put("fullname", user.getFullname());
-        response.put("email", user.getEmail());
-        response.put("premium", String.valueOf(user.isPremium()));
-
-        return ResponseEntity.ok(response);
     }
 
     /**
-     * Handles user registration.
+     * Registers a new user in the system.
+     * Validates uniqueness and sets default role.
      *
-     * - Checks if the email is already in use.
-     * - Creates a new user with encrypted password and stores it in the database.
-     *
-     * @param registerRequest Request body containing user details (fullname, email, country, password).
-     * @return ResponseEntity with success message or error if email is already registered.
+     * @param registerRequest DTO with registration info
+     * @return Success message or conflict if email is already in use
      */
     @PostMapping("/register")
     public ResponseEntity<?> register(@Valid @RequestBody RegisterRequestDTO registerRequest) {
-        // Check if email is already registered
-        if (userRepository.findByEmail(registerRequest.getEmail()) != null) {
-            return ResponseEntity.status(HttpStatus.CONFLICT).body("Email is already in use.");
+        String result = userService.registerUser(registerRequest);
+
+        if (result.equals("Email is already in use.")) {
+            return ResponseEntity.status(HttpStatus.CONFLICT).body(result);
         }
 
-        // Create a new user instance
-        AppUser newUser = new AppUser();
-        newUser.setFullname(registerRequest.getFullname());
-        newUser.setEmail(registerRequest.getEmail());
-        newUser.setCountry(registerRequest.getCountry());
-        newUser.setPassword(passwordEncoder.encode(registerRequest.getPassword())); // Encrypt the password
-        newUser.setRole("ROLE_USER"); // Default role assigned to new users
-
-        // Save the new user in the database
-        userRepository.save(newUser);
-
-        return ResponseEntity.ok("User successfully registered.");
+        return ResponseEntity.ok(result);
     }
 
-    /**
-     * Retrieves all registered users (for administrative purposes).
+     /**
+     * Retrieves a list of all users (for admin or diagnostic use).
      *
-     * @return ResponseEntity containing a list of all users.
+     * @return List of UserDTOs
      */
     @GetMapping("/users")
     public ResponseEntity<List<UserDTO>> getAllUsers() {
-        List<AppUser> users = userRepository.findAll();
-        List<UserDTO> userDTOs = users.stream().map(UserDTO::new).toList();
-        return ResponseEntity.ok(userDTOs);
+        return ResponseEntity.ok(userService.getAllUsers());
     }
 
     /**
      * Deletes a user by ID.
+     * Typically used in administrative scenarios.
      *
-     * - Checks if the user exists before deletion.
-     *
-     * @param id The ID of the user to delete.
-     * @return ResponseEntity with success or error message.
+     * @param id The ID of the user to be deleted
+     * @return A success or not-found response
      */
     @DeleteMapping("/users/{id}")
     public ResponseEntity<?> deleteUser(@PathVariable Long id) {
-        if (!userRepository.existsById(id)) {
+        boolean deleted = userService.deleteUserById(id);
+        if (!deleted) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body("User not found.");
         }
-
-        userRepository.deleteById(id);
         return ResponseEntity.ok("User successfully deleted.");
     }
 
     /**
-     * Upgrades the authenticated user to a premium account.
+     * Upgrades the authenticated user to Premium.
+     * Extracts user info from JWT token and updates role.
      *
-     * - Extracts the user from the JWT token.
-     * - Updates the user's premium status in the database.
-     *
-     * @param token JWT token from the request header.
-     * @return ResponseEntity confirming the premium upgrade.
+     * @param token Authorization header containing Bearer token
+     * @return Confirmation of premium upgrade
      */
     @PutMapping("/users/make-premium")
     public ResponseEntity<?> makeCurrentUserPremium(@RequestHeader("Authorization") String token) {
-        String jwt = token.substring(7); // Remove "Bearer " prefix
-        String email = jwtUtil.extractUsername(jwt); // Extract email from token
-
-        AppUser user = userRepository.findByEmail(email);
-
-        if (user != null) {
-            user.setPremium(true);
-            userRepository.save(user);
-
-            // Return confirmation response
-            Map<String, Object> response = new HashMap<>();
-            response.put("premium", true);
-            response.put("message", "User upgraded to premium!");
-
+        try {
+            Map<String, Object> response = userService.upgradeCurrentUserToPremium(token);
             return ResponseEntity.ok(response);
+        } catch (SecurityException e) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(e.getMessage());
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
         }
-
-        return ResponseEntity.status(HttpStatus.NOT_FOUND).body("User not found.");
     }
+
 }

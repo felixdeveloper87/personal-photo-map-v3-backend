@@ -9,59 +9,88 @@ import org.springframework.data.repository.query.Param;
 
 import java.util.List;
 
+/**
+ * Repository interface for accessing Image entities in the database.
+ * Includes both standard and custom queries for user-specific filtering.
+ */
 @Repository
 public interface ImageRepository extends JpaRepository<Image, Long> {
 
-    // 🔥 Buscar todas as imagens de um país
+    /**
+     * Finds all images from a given country, regardless of user.
+     */
     List<Image> findByCountryId(String countryId);
 
-    // 🔥 Contar o número de fotos do usuário
+    /**
+     * Counts the total number of images uploaded by a specific user.
+     */
     @Query("SELECT COUNT(i) FROM Image i WHERE i.user.id = :userId")
     long countByUserId(@Param("userId") Long userId);
 
-    // 🔥 Buscar imagens por país e ano
+    /**
+     * Finds all images for a specific country and year (regardless of user).
+     */
     List<Image> findByCountryIdAndYear(String countryId, int year);
 
-    // 🔥 Buscar todas as imagens do usuário
+    /**
+     * Finds all images uploaded by a specific user.
+     */
     List<Image> findByUserId(Long userId);
 
-    // 🔥 Buscar imagens do usuário em um país específico
-     
-    // 🔥 Buscar imagens do usuário em um país e ano específico
+    /**
+     * Finds all images uploaded by a user in a specific country and year.
+     */
     List<Image> findByUserAndCountryIdAndYear(AppUser user, String countryId, int year);
 
-
-    // 🔥 Buscar todas as imagens do usuário ordenadas pela data de upload
+    /**
+     * Finds all images uploaded by a user, sorted by upload date (most recent first).
+     */
     List<Image> findByUserIdOrderByUploadDateDesc(Long userId);
 
-    // 🔥 Buscar imagens do usuário em um país específico
+    /**
+     * Finds all images uploaded by a user for a specific country.
+     */
     List<Image> findByCountryIdAndUserId(String countryId, Long userId);
 
-    // 🔥 Buscar imagens do usuário em um país e ano específico
+    /**
+     * Finds all images uploaded by a user for a specific country and year.
+     */
     List<Image> findByCountryIdAndYearAndUserId(String countryId, int year, Long userId);
 
-    // 🔥 Buscar países distintos onde o usuário tem imagens
+    /**
+     * Returns a list of unique country IDs where a user has uploaded images.
+     */
     @Query("SELECT DISTINCT i.countryId FROM Image i WHERE i.user.id = :userId")
     List<String> findDistinctCountryIdsByUserId(@Param("userId") Long userId);
 
-    // 🔥 Buscar todas as imagens ordenadas por uploadDate
+    /**
+     * Returns all images ordered by upload date (most recent first).
+     */
     @Query("SELECT i FROM Image i ORDER BY i.uploadDate DESC")
     List<Image> findAllOrderedByUploadDateDesc();
 
-    // 🔥 Buscar anos distintos onde o usuário tem imagens
+    /**
+     * Returns a list of distinct years in which a user has uploaded images.
+     */
     @Query("SELECT DISTINCT i.year FROM Image i WHERE i.user.id = :userId ORDER BY i.year DESC")
     List<Integer> findDistinctYearsByUserId(@Param("userId") Long userId);
 
-    // 🔥 Buscar imagens do usuário por ano
+    /**
+     * Finds all images uploaded by a user in a specific year, ordered by upload date descending.
+     */
     @Query("SELECT i FROM Image i WHERE i.user.id = :userId AND i.year = :year ORDER BY i.uploadDate DESC")
     List<Image> findByUserIdAndYear(@Param("userId") Long userId, @Param("year") Integer year);
 
-    // 🔥 Buscar anos distintos onde o usuário tem imagens em um país específico
+    /**
+     * Returns a list of distinct years a user has uploaded images for a specific country.
+     */
     @Query("SELECT DISTINCT i.year FROM Image i WHERE i.countryId = :countryId AND i.user.id = :userId ORDER BY i.year")
     List<Integer> findDistinctYearsByCountryIdAndUserId(@Param("countryId") String countryId,
-            @Param("userId") Long userId);
+                                                        @Param("userId") Long userId);
 
-    // 🔥 Contar países distintos onde o usuário tem imagens
+    /**
+     * Counts the number of unique countries where the user has uploaded images.
+     */
     @Query("SELECT COUNT(DISTINCT i.countryId) FROM Image i WHERE i.user.id = :userId")
     long countDistinctCountryByUserId(@Param("userId") Long userId);
 }

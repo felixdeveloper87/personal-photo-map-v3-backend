@@ -5,6 +5,11 @@ import java.time.LocalDateTime;
 
 import com.fasterxml.jackson.annotation.JsonBackReference;
 
+/**
+ * Entity representing an uploaded image.
+ * Each image is associated with one user and contains metadata such as
+ * file path, country, upload date, and year.
+ */
 @Entity
 @Table(name = "images", indexes = {
         @Index(name = "idx_images_user", columnList = "user_id"),
@@ -12,23 +17,49 @@ import com.fasterxml.jackson.annotation.JsonBackReference;
         @Index(name = "idx_images_year", columnList = "year")
 })
 public class Image {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    /**
+     * ISO country code where the image was taken or associated.
+     */
     private String countryId;
+
+    /**
+     * The original or generated file name of the image.
+     */
     private String fileName;
+
+    /**
+     * Path to the image (can be local or S3 URL depending on environment).
+     */
     private String filePath;
+
+    /**
+     * The year the image is categorized under.
+     */
     private int year;
 
+    /**
+     * Timestamp of when the image was uploaded.
+     * Automatically set before persisting.
+     */
     @Column(name = "upload_date", updatable = false)
     private LocalDateTime uploadDate;
 
+    /**
+     * Many-to-One relationship: each image belongs to one user.
+     * 'user_id' is the foreign key in the 'images' table.
+     * @JsonBackReference prevents infinite JSON recursion during serialization.
+     */
     @ManyToOne
-    @JoinColumn(name = "user_id", nullable = false) // Define a chave estrangeira
+    @JoinColumn(name = "user_id", nullable = false)
     @JsonBackReference
-    private AppUser user; // Associação com AppUser
+    private AppUser user;
 
+    // Constructors
     public Image() {
     }
 
@@ -41,6 +72,7 @@ public class Image {
         this.year = year;
     }
 
+    // Getters and Setters
     public Long getId() {
         return id;
     }
@@ -97,6 +129,9 @@ public class Image {
         this.user = user;
     }
 
+    /**
+     * Automatically sets the upload date before persisting.
+     */
     @PrePersist
     protected void onCreate() {
         this.uploadDate = LocalDateTime.now();
