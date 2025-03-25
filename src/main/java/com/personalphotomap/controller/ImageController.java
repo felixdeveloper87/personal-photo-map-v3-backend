@@ -1,5 +1,6 @@
 package com.personalphotomap.controller;
 
+import com.personalphotomap.dto.ImageDTO;
 import com.personalphotomap.model.Image;
 import com.personalphotomap.service.ImageService;
 import org.springframework.http.*;
@@ -96,11 +97,11 @@ public class ImageController {
     }
 
     @GetMapping("/{countryId}")
-    public ResponseEntity<List<Image>> getImagesByCountry(
+    public ResponseEntity<List<ImageDTO>> getImagesByCountry(
             @PathVariable String countryId,
             @RequestHeader("Authorization") String token) {
         try {
-            List<Image> images = imageService.getImagesByCountry(countryId, token);
+            List<ImageDTO> images = imageService.getImagesByCountry(countryId, token);
             return ResponseEntity.ok(images);
         } catch (IllegalArgumentException e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(null);
@@ -134,11 +135,11 @@ public class ImageController {
     }
 
     @GetMapping("/allPictures")
-    public ResponseEntity<List<Image>> getAllImages(
+    public ResponseEntity<List<ImageDTO>> getAllImages(
             @RequestHeader("Authorization") String token,
             @RequestParam(required = false) Integer year) {
         try {
-            List<Image> images = imageService.getAllImages(token, year);
+            List<ImageDTO> images = imageService.getAllImages(token, year);
             return ResponseEntity.ok(images);
         } catch (IllegalArgumentException e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(null);
@@ -162,12 +163,12 @@ public class ImageController {
     }
 
     @GetMapping("/{countryId}/{year}")
-    public ResponseEntity<List<Image>> getImagesByCountryAndYear(
+    public ResponseEntity<List<ImageDTO>> getImagesByCountryAndYear(
             @PathVariable String countryId,
             @PathVariable int year,
             @RequestHeader("Authorization") String token) {
         try {
-            List<Image> images = imageService.getImagesByCountryAndYear(countryId, year, token);
+            List<ImageDTO> images = imageService.getImagesByCountryAndYear(countryId, year, token);
             return ResponseEntity.ok(images);
         } catch (IllegalArgumentException e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(null);
@@ -188,5 +189,7 @@ public class ImageController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
         }
     }
+
+    
 
 }

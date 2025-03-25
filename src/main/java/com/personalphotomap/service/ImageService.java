@@ -1,5 +1,6 @@
 package com.personalphotomap.service;
 
+import com.personalphotomap.dto.ImageDTO;
 import com.personalphotomap.model.AppUser;
 import com.personalphotomap.model.Image;
 import com.personalphotomap.repository.ImageRepository;
@@ -85,11 +86,7 @@ public class ImageService {
             return;
         }
 
-        List<CompletableFuture<Void>> futures = images.stream()
-                .map(imageDeleteService::deleteImage)
-                .collect(Collectors.toList());
-
-        CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).join();
+        imageDeleteService.deleteImagesInParallel(images); // 👈 mais limpo e sem lógica duplicada
     }
 
     public void deleteImagesByCountryAndYear(String countryId, int year, String token) {
@@ -169,7 +166,7 @@ public class ImageService {
         CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).join();
     }
 
-    public List<Image> getImagesByCountry(String countryId, String token) {
+    public List<ImageDTO> getImagesByCountry(String countryId, String token) {
         String email = jwtUtil.extractUsernameFromToken(token);
         if (email == null) {
             throw new IllegalArgumentException("Invalid or missing JWT token.");
@@ -180,7 +177,8 @@ public class ImageService {
             throw new IllegalArgumentException("Usuário não encontrado.");
         }
 
-        return imageRepository.findByCountryIdAndUserId(countryId, user.getId());
+        List<Image> images = imageRepository.findByCountryIdAndUserId(countryId, user.getId());
+        return convertToDTOList(images);
     }
 
     public List<String> getCountriesWithPhotos(String token) {
@@ -211,7 +209,7 @@ public class ImageService {
         return imageRepository.findDistinctYearsByUserId(user.getId());
     }
 
-    public List<Image> getAllImages(String token, Integer year) {
+    public List<ImageDTO> getAllImages(String token, Integer year) {
         String email = jwtUtil.extractUsernameFromToken(token);
         if (email == null) {
             throw new IllegalArgumentException("Invalid or missing JWT token.");
@@ -222,11 +220,14 @@ public class ImageService {
             throw new IllegalArgumentException("Usuário não encontrado.");
         }
 
+        List<Image> images;
         if (year != null) {
-            return imageRepository.findByUserIdAndYear(user.getId(), year);
+            images = imageRepository.findByUserIdAndYear(user.getId(), year);
         } else {
-            return imageRepository.findByUserIdOrderByUploadDateDesc(user.getId());
+            images = imageRepository.findByUserIdOrderByUploadDateDesc(user.getId());
         }
+
+        return convertToDTOList(images);
     }
 
     public List<Integer> getYearsByCountry(String countryId, String token) {
@@ -250,7 +251,7 @@ public class ImageService {
         imageRepository.deleteAll(images);
     }
 
-    public List<Image> getImagesByCountryAndYear(String countryId, int year, String token) {
+    public List<ImageDTO> getImagesByCountryAndYear(String countryId, int year, String token) {
         String email = jwtUtil.extractUsernameFromToken(token);
         if (email == null) {
             throw new IllegalArgumentException("Invalid or missing JWT token.");
@@ -261,7 +262,8 @@ public class ImageService {
             throw new IllegalArgumentException("Usuário não encontrado.");
         }
 
-        return imageRepository.findByCountryIdAndYearAndUserId(countryId, year, user.getId());
+        List<Image> images = imageRepository.findByCountryIdAndYearAndUserId(countryId, year, user.getId());
+        return convertToDTOList(images);
     }
 
     public Map<String, Object> countUserPhotosAndCountries(String token) {
@@ -282,6 +284,22 @@ public class ImageService {
         response.put("photoCount", photoCount);
         response.put("countryCount", countryCount);
         return response;
+    }
+
+    public ImageDTO convertToDTO(Image image) {
+        return new ImageDTO(
+                image.getId(),
+                image.getCountryId(),
+                image.getFileName(),
+                image.getFilePath(),
+                image.getYear(),
+                image.getUploadDate());
+    }
+
+    public List<ImageDTO> convertToDTOList(List<Image> images) {
+        return images.stream()
+                .map(this::convertToDTO)
+                .collect(Collectors.toList());
     }
 
 }
