@@ -1,7 +1,7 @@
 package com.personalphotomap.dto;
 
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.NotEmpty;
 import java.util.List;
 
 /**
@@ -15,7 +15,7 @@ public class AlbumRequestDTO {
     @NotBlank(message = "Country ID is required")
     private String countryId;
 
-    @NotNull(message = "Image ID list cannot be null")
+    @NotEmpty(message = "Image ID list cannot be empty")
     private List<Long> imageIds;
 
     public AlbumRequestDTO() {

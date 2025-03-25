@@ -8,6 +8,8 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 
+/// VEREFICAR A UTILIDADE DESSA CLASSE POIS ACHO Q NAO TA SENDO USADA
+
 @Service
 public class CustomUserDetailsService implements UserDetailsService {
 
