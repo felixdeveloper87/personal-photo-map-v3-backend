@@ -61,22 +61,4 @@ public class ImageDeleteService {
 
         CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).join();
     }
-
-    // @Async // 🔥 Cada imagem será deletada em uma thread separada
-    // public CompletableFuture<Void> deleteImageAsync(Image image) {
-    // String threadName = Thread.currentThread().getName();
-    // try {
-    // logger.info("🗑️ Deletando imagem: {} na thread: {}", image.getFilePath(),
-    // threadName);
-    // s3Service.deleteFile(image.getFilePath()); // Deletar do S3
-    // imageRepository.delete(image); // Remover do banco de dados
-    // logger.info("✅ Imagem deletada com sucesso: {} | Thread: {}",
-    // image.getFilePath(), threadName);
-    // return CompletableFuture.completedFuture(null);
-    // } catch (Exception e) {
-    // logger.error("❌ Erro ao deletar a imagem: {} | Thread: {}",
-    // image.getFilePath(), threadName, e);
-    // return CompletableFuture.failedFuture(e);
-    // }
-    // }
 }

@@ -13,21 +13,15 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
-import org.springframework.beans.factory.annotation.Autowired;
 
-import java.util.ArrayList;
 import java.util.List;
 
 @Configuration
 public class SecurityConfig {
 
-    private final CustomUserDetailsService customUserDetailsService;
-    private final JwtAuthenticationFilter jwtAuthenticationFilter; // Injeção do filtro JWT
+    private final JwtAuthenticationFilter jwtAuthenticationFilter; 
 
-    // Construtor para injeção das dependências
-    @Autowired
-    public SecurityConfig(CustomUserDetailsService customUserDetailsService, JwtAuthenticationFilter jwtAuthenticationFilter) {
-        this.customUserDetailsService = customUserDetailsService;
+    public SecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter) {
         this.jwtAuthenticationFilter = jwtAuthenticationFilter;
     }
 
@@ -38,15 +32,16 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(authz -> authz
                         .requestMatchers("/api/auth/**", "/photomap").permitAll()
-                        .requestMatchers("/api/images/uploads/**").permitAll() // se soh user conectados podem abrir essa pagina, entao esse codigo eh inutil
+                        .requestMatchers("/api/images/uploads/**").permitAll() // se soh user conectados podem abrir
+                                                                               // essa pagina, entao esse codigo eh
+                                                                               // inutil
                         .requestMatchers("/api/images/**").authenticated()
                         .requestMatchers("/api/users").hasRole("ADMIN")
-                        .requestMatchers(org.springframework.http.HttpMethod.OPTIONS, "/**").permitAll() // Libera OPTIONS
-                        .anyRequest().authenticated()
-                )
+                        .requestMatchers(org.springframework.http.HttpMethod.OPTIONS, "/**").permitAll() // Libera
+                                                                                                         // OPTIONS
+                        .anyRequest().authenticated())
                 .sessionManagement(session -> session
-                        .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
-                );
+                        .sessionCreationPolicy(SessionCreationPolicy.STATELESS));
 
         http.addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
@@ -57,12 +52,9 @@ public class SecurityConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
 
-        List<String> allowedOrigins = new ArrayList<>();
-
         configuration.setAllowedOrigins(List.of(
                 "http://localhost:5173",
-                "https://personal-photo-map-v3-frontend.vercel.app"
-    ));
+                "https://personal-photo-map-v3-frontend.vercel.app"));
         configuration.setAllowCredentials(true);
 
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
@@ -76,11 +68,12 @@ public class SecurityConfig {
 
     @Bean
     public PasswordEncoder passwordEncoder() {
-        return new BCryptPasswordEncoder(); // Define o encoder de senha como BCrypt
+        return new BCryptPasswordEncoder();
     }
 
     @Bean
-    public AuthenticationManager authenticationManager(AuthenticationConfiguration authenticationConfiguration) throws Exception {
-        return authenticationConfiguration.getAuthenticationManager(); // Usa a configuração de autenticação padrão
+    public AuthenticationManager authenticationManager(AuthenticationConfiguration authenticationConfiguration)
+            throws Exception {
+        return authenticationConfiguration.getAuthenticationManager();
     }
 }
