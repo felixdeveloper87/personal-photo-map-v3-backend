@@ -22,27 +22,29 @@ import java.util.stream.Collectors;
 public class ImageService {
 
     private final ImageRepository imageRepository;
-    private final S3Service s3Service;
     private final UserRepository userRepository;
     private final JwtUtil jwtUtil;
     private final ImageUploadService imageUploadService;
     private final ImageDeleteService imageDeleteService;
 
     public ImageService(ImageRepository imageRepository,
-            S3Service s3Service,
             UserRepository userRepository,
             JwtUtil jwtUtil,
             ImageUploadService imageUploadService,
             ImageDeleteService imageDeleteService) {
         this.imageRepository = imageRepository;
-        this.s3Service = s3Service;
         this.userRepository = userRepository;
         this.jwtUtil = jwtUtil;
         this.imageUploadService = imageUploadService;
         this.imageDeleteService = imageDeleteService;
     }
 
-    public List<String> handleUpload(List<MultipartFile> files, String countryId, int year, String token) {
+    /**
+     * Extracts the AppUser associated with the provided JWT token.
+     * Centralized method for token validation and user retrieval.
+     */
+
+    private AppUser getUserFromToken(String token) {
         String email = jwtUtil.extractUsernameFromToken(token);
         if (email == null) {
             throw new IllegalArgumentException("Invalid or missing JWT token.");
@@ -50,8 +52,25 @@ public class ImageService {
 
         AppUser user = userRepository.findByEmail(email);
         if (user == null) {
-            throw new IllegalArgumentException("Usuário não encontrado.");
+            throw new IllegalArgumentException("User Not Found.");
         }
+
+        return user;
+    }
+
+    // ===============================
+    // UPLOAD METHOD
+    // ===============================
+
+    /**
+     * Handles asynchronous upload of multiple images.
+     * Images are validated, uploaded to S3, and saved to the database.
+     *
+     * @return list of uploaded image URLs
+     */
+
+    public List<String> handleUpload(List<MultipartFile> files, String countryId, int year, String token) {
+        AppUser user = getUserFromToken(token);
 
         if (files == null || files.isEmpty()) {
             throw new IllegalArgumentException("No files were provided.");
@@ -70,155 +89,116 @@ public class ImageService {
                 .collect(Collectors.toList());
     }
 
-    public void deleteAllImagesByCountry(String countryId, String token) {
-        String email = jwtUtil.extractUsernameFromToken(token);
-        if (email == null) {
-            throw new IllegalArgumentException("Invalid or missing JWT token.");
-        }
+    // ===============================
+    // DELETE METHODS
+    // ===============================
 
-        AppUser user = userRepository.findByEmail(email);
-        if (user == null) {
-            throw new IllegalArgumentException("Usuário não encontrado.");
-        }
+    /**
+     * Deletes all images from a given country for the authenticated user.
+     * Uses async deletion for better performance.
+     */
+
+    public void deleteAllImagesByCountry(String countryId, String token) { // ✅
+        AppUser user = getUserFromToken(token);
 
         List<Image> images = imageRepository.findByCountryIdAndUserId(countryId, user.getId());
         if (images.isEmpty()) {
             return;
         }
 
-        imageDeleteService.deleteImagesInParallel(images); 
+        imageDeleteService.deleteImagesInParallel(images);
     }
 
-    public void deleteImagesByCountryAndYear(String countryId, int year, String token) {
-        String email = jwtUtil.extractUsernameFromToken(token);
-        if (email == null) {
-            throw new IllegalArgumentException("Invalid or missing JWT token.");
-        }
+    /**
+     * Deletes all images from a specific country and year.
+     * Currently not used on frontend but kept for potential future use.
+     */
 
-        AppUser user = userRepository.findByEmail(email);
-        if (user == null) {
-            throw new IllegalArgumentException("Usuário não encontrado.");
-        }
+    public void deleteImagesByCountryAndYear(String countryId, int year, String token) { // ✅ ANALIZAR PQ NAO TENHO
+                                                                                         // BOTAO PARA DELETAR POR
+                                                                                         // IMAGEM E ANO NO FRONT
+        AppUser user = getUserFromToken(token);
 
         List<Image> images = imageRepository.findByCountryIdAndYearAndUserId(countryId, year, user.getId());
         if (images.isEmpty()) {
-            return; // Ou pode lançar uma exceção se quiser retornar 404
+            return;
         }
 
-        List<CompletableFuture<Void>> futures = images.stream()
-                .map(imageDeleteService::deleteImage)
-                .collect(Collectors.toList());
-
-        CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).join();
+        imageDeleteService.deleteImagesInParallel(images);
     }
 
-    public void deleteImageById(Long imageId, String token) {
-        String email = jwtUtil.extractUsernameFromToken(token);
-        if (email == null) {
-            throw new IllegalArgumentException("Invalid or missing JWT token.");
-        }
+    /**
+     * Deletes a single image by ID if it belongs to the authenticated user.
+     */
 
-        AppUser user = userRepository.findByEmail(email);
-        if (user == null) {
-            throw new IllegalArgumentException("Usuário não encontrado.");
-        }
-
+    public void deleteImageById(Long imageId, String token) { // ✅
+        AppUser user = getUserFromToken(token);
         Image image = imageRepository.findById(imageId)
                 .orElseThrow(() -> new IllegalArgumentException("Image not found."));
 
         if (!image.getUser().getId().equals(user.getId())) {
-            throw new SecurityException("Você não tem permissão para deletar esta imagem.");
+            throw new SecurityException("You do not have permission to delete this image.");
         }
 
-        // Chama a service assíncrona, mas espera a finalização
-        try {
-            imageDeleteService.deleteImage(image).join();
-        } catch (Exception e) {
-            throw new RuntimeException("Erro ao deletar imagem: " + e.getMessage(), e);
-        }
+        imageDeleteService.deleteImage(image).join(); // Single async delete
     }
 
-    public void deleteMultipleImages(List<Long> imageIds, String token) {
-        String email = jwtUtil.extractUsernameFromToken(token);
-        if (email == null) {
-            throw new IllegalArgumentException("Invalid or missing JWT token.");
-        }
-
-        AppUser user = userRepository.findByEmail(email);
-        if (user == null) {
-            throw new IllegalArgumentException("Usuário não encontrado.");
-        }
-
+    /**
+     * Deletes multiple images by their IDs, if all belong to the authenticated
+     * user.
+     */
+    public void deleteMultipleImages(List<Long> imageIds, String token) { // ✅
+        AppUser user = getUserFromToken(token);
         List<Image> imagesToDelete = imageRepository.findAllById(imageIds);
 
-        // Verifica se o usuário é dono de todas as imagens
-        for (Image image : imagesToDelete) {
-            if (!image.getUser().getId().equals(user.getId())) {
-                throw new SecurityException("You do not have permission to delete some images.");
-            }
+        if (imagesToDelete.isEmpty())
+            return;
+
+        boolean hasUnauthorized = imagesToDelete.stream()
+                .anyMatch(img -> !img.getUser().getId().equals(user.getId()));
+
+        if (hasUnauthorized) {
+            throw new SecurityException("You do not have permission to delete one or more images.");
         }
 
-        // Deleção assíncrona com join
-        List<CompletableFuture<Void>> futures = imagesToDelete.stream()
-                .map(imageDeleteService::deleteImage)
-                .collect(Collectors.toList());
-
-        CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).join();
+        imageDeleteService.deleteImagesInParallel(imagesToDelete);
     }
 
-    public List<ImageDTO> getImagesByCountry(String countryId, String token) {
-        String email = jwtUtil.extractUsernameFromToken(token);
-        if (email == null) {
-            throw new IllegalArgumentException("Invalid or missing JWT token.");
-        }
+    // ===============================
+    // GET METHODS
+    // ===============================
 
-        AppUser user = userRepository.findByEmail(email);
-        if (user == null) {
-            throw new IllegalArgumentException("Usuário não encontrado.");
-        }
-
+    /**
+     * Returns all images associated with a country for the authenticated user.
+     */
+    public List<ImageDTO> getImagesByCountry(String countryId, String token) { // ✅
+        AppUser user = getUserFromToken(token);
         List<Image> images = imageRepository.findByCountryIdAndUserId(countryId, user.getId());
         return convertToDTOList(images);
     }
 
-    public List<String> getCountriesWithPhotos(String token) {
-        String email = jwtUtil.extractUsernameFromToken(token);
-        if (email == null) {
-            throw new IllegalArgumentException("Invalid or missing JWT token.");
-        }
+    /**
+     * Returns the list of distinct countries where the user has uploaded photos.
+     */
 
-        AppUser user = userRepository.findByEmail(email);
-        if (user == null) {
-            throw new IllegalArgumentException("Usuário não encontrado.");
-        }
-
+    public List<String> getCountriesWithPhotos(String token) { // ✅
+        AppUser user = getUserFromToken(token);
         return imageRepository.findDistinctCountryIdsByUserId(user.getId());
     }
 
-    public List<Integer> getAvailableYears(String token) {
-        String email = jwtUtil.extractUsernameFromToken(token);
-        if (email == null) {
-            throw new IllegalArgumentException("Invalid or missing JWT token.");
-        }
-
-        AppUser user = userRepository.findByEmail(email);
-        if (user == null) {
-            throw new IllegalArgumentException("Usuário não encontrado.");
-        }
-
+    /**
+     * Returns a list of distinct years the user has uploaded photos for.
+     */
+    public List<Integer> getAvailableYears(String token) { // ✅
+        AppUser user = getUserFromToken(token);
         return imageRepository.findDistinctYearsByUserId(user.getId());
     }
 
-    public List<ImageDTO> getAllImages(String token, Integer year) {
-        String email = jwtUtil.extractUsernameFromToken(token);
-        if (email == null) {
-            throw new IllegalArgumentException("Invalid or missing JWT token.");
-        }
-
-        AppUser user = userRepository.findByEmail(email);
-        if (user == null) {
-            throw new IllegalArgumentException("Usuário não encontrado.");
-        }
+    /**
+     * Returns all images from the authenticated user, optionally filtered by year.
+     */
+    public List<ImageDTO> getAllImages(String token, Integer year) { // ✅
+        AppUser user = getUserFromToken(token);
 
         List<Image> images;
         if (year != null) {
@@ -230,52 +210,30 @@ public class ImageService {
         return convertToDTOList(images);
     }
 
-    public List<Integer> getYearsByCountry(String countryId, String token) {
-        String email = jwtUtil.extractUsernameFromToken(token);
-        if (email == null) {
-            throw new IllegalArgumentException("Invalid or missing JWT token.");
-        }
-
-        AppUser user = userRepository.findByEmail(email);
-        if (user == null) {
-            throw new IllegalArgumentException("Usuário não encontrado.");
-        }
-
+    /**
+     * Returns the list of available years for a specific country.
+     */
+    public List<Integer> getYearsByCountry(String countryId, String token) { // ✅
+        AppUser user = getUserFromToken(token);
         return imageRepository.findDistinctYearsByCountryIdAndUserId(countryId, user.getId());
     }
 
-    public void deleteImages(List<Image> images) {
-        for (Image image : images) {
-            s3Service.deleteFile(image.getFilePath());
-        }
-        imageRepository.deleteAll(images);
-    }
-
-    public List<ImageDTO> getImagesByCountryAndYear(String countryId, int year, String token) {
-        String email = jwtUtil.extractUsernameFromToken(token);
-        if (email == null) {
-            throw new IllegalArgumentException("Invalid or missing JWT token.");
-        }
-
-        AppUser user = userRepository.findByEmail(email);
-        if (user == null) {
-            throw new IllegalArgumentException("Usuário não encontrado.");
-        }
-
+    /**
+     * Returns all images from a specific country and year for the authenticated
+     * user.
+     */
+    public List<ImageDTO> getImagesByCountryAndYear(String countryId, int year, String token) { // ✅
+        AppUser user = getUserFromToken(token);
         List<Image> images = imageRepository.findByCountryIdAndYearAndUserId(countryId, year, user.getId());
         return convertToDTOList(images);
     }
 
-    public Map<String, Object> countUserPhotosAndCountries(String token) {
-        String email = jwtUtil.extractUsernameFromToken(token);
-        if (email == null) {
-            throw new IllegalArgumentException("Invalid or missing JWT token.");
-        }
-
-        AppUser user = userRepository.findByEmail(email);
-        if (user == null) {
-            throw new IllegalArgumentException("Usuário não encontrado.");
-        }
+    /**
+     * Returns a summary containing the total number of photos and distinct
+     * countries.
+     */
+    public Map<String, Object> countUserPhotosAndCountries(String token) { // ✅
+        AppUser user = getUserFromToken(token);
 
         long photoCount = imageRepository.countByUserId(user.getId());
         long countryCount = imageRepository.countDistinctCountryByUserId(user.getId());
@@ -286,7 +244,14 @@ public class ImageService {
         return response;
     }
 
-    public ImageDTO convertToDTO(Image image) {
+    // ===============================
+    // CONVERSION HELPERS
+    // ===============================
+
+    /**
+     * Converts an Image entity to a DTO.
+     */
+    public ImageDTO convertToDTO(Image image) { // ✅
         return new ImageDTO(
                 image.getId(),
                 image.getCountryId(),
@@ -296,7 +261,10 @@ public class ImageService {
                 image.getUploadDate());
     }
 
-    public List<ImageDTO> convertToDTOList(List<Image> images) {
+    /**
+     * Converts a list of Image entities to DTOs.
+     */
+    public List<ImageDTO> convertToDTOList(List<Image> images) { // ✅
         return images.stream()
                 .map(this::convertToDTO)
                 .collect(Collectors.toList());

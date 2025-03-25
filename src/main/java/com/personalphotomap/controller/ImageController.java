@@ -1,7 +1,6 @@
 package com.personalphotomap.controller;
 
 import com.personalphotomap.dto.ImageDTO;
-import com.personalphotomap.model.Image;
 import com.personalphotomap.service.ImageService;
 import org.springframework.http.*;
 import org.springframework.web.bind.annotation.*;
@@ -19,6 +18,15 @@ public class ImageController {
         this.imageService = imageService;
     }
 
+    // ===============================
+    // POST METHOD
+    // ===============================
+
+    /**
+     * Handles image upload from the user.
+     * Accepts multiple images, associates them with a country and year,
+     * and uploads them asynchronously to S3 and the database.
+     */
     @PostMapping(value = "/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<?> uploadImages(
             @RequestParam("images") List<MultipartFile> files,
@@ -35,7 +43,14 @@ public class ImageController {
         }
     }
 
-    @DeleteMapping("/delete-all-images/{countryId}")
+    // ===============================
+    // DELETE METHODS
+    // ===============================
+
+    /**
+     * Deletes all images from a given country for the authenticated user.
+     */
+    @DeleteMapping("/delete-all-images/{countryId}") // ✅
     public ResponseEntity<?> deleteAllImagesByCountry(
             @PathVariable String countryId,
             @RequestHeader("Authorization") String token) {
@@ -49,7 +64,11 @@ public class ImageController {
         }
     }
 
-    @DeleteMapping("/{countryId}/{year}")
+    /**
+     * Deletes images by country and year.
+     * Currently not used on the frontend, but ready for future use.
+     */
+    @DeleteMapping("/{countryId}/{year}") // ✅ ANALIZAR PQ NAO ESTOU USANDO NO FRONT
     public ResponseEntity<?> deleteImagesByCountryAndYear(
             @PathVariable String countryId,
             @PathVariable int year,
@@ -64,7 +83,11 @@ public class ImageController {
         }
     }
 
-    @DeleteMapping("/delete/{id}")
+    /**
+     * Deletes a single image by its ID.
+     * Only allowed if the image belongs to the authenticated user.
+     */
+    @DeleteMapping("/delete/{id}") // ✅
     public ResponseEntity<?> deleteImageById(
             @PathVariable Long id,
             @RequestHeader("Authorization") String token) {
@@ -80,6 +103,10 @@ public class ImageController {
         }
     }
 
+    /**
+     * Deletes multiple images by their IDs.
+     * All images must belong to the authenticated user.
+     */
     @DeleteMapping("/delete-multiple")
     public ResponseEntity<?> deleteMultipleImages(
             @RequestBody List<Long> imageIds,
@@ -96,6 +123,13 @@ public class ImageController {
         }
     }
 
+    // ===============================
+    // GET METHODS
+    // ===============================
+
+    /**
+     * Retrieves all images for a specific country from the authenticated user.
+     */
     @GetMapping("/{countryId}")
     public ResponseEntity<List<ImageDTO>> getImagesByCountry(
             @PathVariable String countryId,
@@ -110,6 +144,9 @@ public class ImageController {
         }
     }
 
+    /**
+     * Returns a list of countries where the user has uploaded at least one image.
+     */
     @GetMapping("/countries-with-photos")
     public ResponseEntity<List<String>> getCountriesWithPhotos(@RequestHeader("Authorization") String token) {
         try {
@@ -122,6 +159,9 @@ public class ImageController {
         }
     }
 
+    /**
+     * Returns a list of available years the user has uploaded photos in.
+     */
     @GetMapping("/available-years")
     public ResponseEntity<List<Integer>> getAvailableYears(@RequestHeader("Authorization") String token) {
         try {
@@ -134,6 +174,10 @@ public class ImageController {
         }
     }
 
+    /**
+     * Retrieves all images from the authenticated user.
+     * Optional year filtering can be applied.
+     */
     @GetMapping("/allPictures")
     public ResponseEntity<List<ImageDTO>> getAllImages(
             @RequestHeader("Authorization") String token,
@@ -148,6 +192,10 @@ public class ImageController {
         }
     }
 
+    /**
+     * Returns the list of years for which the user has uploaded images for a
+     * specific country.
+     */
     @GetMapping("/{countryId}/available-years")
     public ResponseEntity<List<Integer>> getYearsByCountry(
             @PathVariable String countryId,
@@ -162,6 +210,10 @@ public class ImageController {
         }
     }
 
+    /**
+     * Returns all images from a specific country and year for the authenticated
+     * user.
+     */
     @GetMapping("/{countryId}/{year}")
     public ResponseEntity<List<ImageDTO>> getImagesByCountryAndYear(
             @PathVariable String countryId,
@@ -177,6 +229,9 @@ public class ImageController {
         }
     }
 
+    /**
+     * Returns the total number of photos and countries visited by the user.
+     */
     @GetMapping("/count")
     public ResponseEntity<Map<String, Object>> countUserPhotosAndCountries(
             @RequestHeader("Authorization") String token) {
@@ -189,7 +244,5 @@ public class ImageController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
         }
     }
-
-    
 
 }
