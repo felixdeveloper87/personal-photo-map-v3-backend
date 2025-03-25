@@ -86,7 +86,7 @@ public class ImageService {
             return;
         }
 
-        imageDeleteService.deleteImagesInParallel(images); // 👈 mais limpo e sem lógica duplicada
+        imageDeleteService.deleteImagesInParallel(images); 
     }
 
     public void deleteImagesByCountryAndYear(String countryId, int year, String token) {
