@@ -21,8 +21,7 @@ import java.util.concurrent.CompletableFuture;
 public class ImageUploadService {
 
     private static final Logger logger = LoggerFactory.getLogger(ImageUploadService.class);
-    private static final Tika tika = new Tika(); // 🔥 Detector de MIME type
-
+    private static final Tika tika = new Tika(); 
     @Autowired
     private S3Service s3Service;
 

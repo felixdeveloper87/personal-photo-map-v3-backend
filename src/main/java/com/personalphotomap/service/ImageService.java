@@ -44,7 +44,7 @@ public class ImageService {
      * Centralized method for token validation and user retrieval.
      */
 
-    private AppUser getUserFromToken(String token) {
+    public AppUser getUserFromToken(String token) { // after testing make it private again
         String email = jwtUtil.extractUsernameFromToken(token);
         if (email == null) {
             throw new IllegalArgumentException("Invalid or missing JWT token.");
@@ -78,6 +78,9 @@ public class ImageService {
 
         List<CompletableFuture<String>> futures = new ArrayList<>();
         for (MultipartFile file : files) {
+            if (file == null || file.isEmpty()) {
+                throw new IllegalArgumentException("One or more files are empty.");
+            }
             futures.add(imageUploadService.uploadAndSaveImage(file, countryId, year, user));
         }
 
@@ -140,7 +143,7 @@ public class ImageService {
             throw new SecurityException("You do not have permission to delete this image.");
         }
 
-        imageDeleteService.deleteImage(image).join(); // Single async delete
+        imageDeleteService.deleteImage(image);
     }
 
     /**

@@ -54,6 +54,8 @@ public class SecurityConfig {
 
         configuration.setAllowedOrigins(List.of(
                 "http://localhost:5173",
+                "https://personalphotomap.co.uk",
+                "https://www.personalphotomap.co.uk",
                 "https://personal-photo-map-v3-frontend.vercel.app"));
         configuration.setAllowCredentials(true);
 
