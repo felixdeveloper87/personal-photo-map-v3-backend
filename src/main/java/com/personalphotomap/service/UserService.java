@@ -5,9 +5,11 @@ import com.personalphotomap.model.Image;
 import com.personalphotomap.dto.LoginRequestDTO;
 import com.personalphotomap.dto.RegisterRequestDTO;
 import com.personalphotomap.dto.UserDTO;
+import com.personalphotomap.dto.UserSummaryDTO;
 import com.personalphotomap.repository.ImageRepository;
 import com.personalphotomap.repository.UserRepository;
 import com.personalphotomap.security.JwtUtil;
+import com.personalphotomap.dto.UserSummaryDTO;
 
 import jakarta.transaction.Transactional;
 
@@ -54,6 +56,22 @@ public class UserService {
         return userRepository.findAll()
                 .stream()
                 .map(UserDTO::new)
+                .toList();
+    }
+
+    public List<UserSummaryDTO> getAllUsersWithPhotoCount() {
+        List<AppUser> users = userRepository.findAll();
+
+        return users.stream()
+                .map(user -> {
+                    long count = imageRepository.countByUserId(user.getId());
+                    return new UserSummaryDTO(
+                            user.getId(),
+                            user.getFullname(),
+                            user.getEmail(),
+                            user.getCountry(),
+                            (int) count);
+                })
                 .toList();
     }
 
