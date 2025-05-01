@@ -11,6 +11,7 @@ import java.util.List;
  * Entity representing an application user.
  * Each user has credentials, optional premium status, and owns multiple images.
  */
+
 @Entity
 @Table(name = "users")
 public class AppUser {

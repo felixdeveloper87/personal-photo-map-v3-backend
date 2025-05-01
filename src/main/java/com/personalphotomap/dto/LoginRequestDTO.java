@@ -8,6 +8,7 @@ import jakarta.validation.constraints.NotBlank;
  * Contains validation annotations to enforce correct input format and non-empty
  * fields.
  */
+
 public class LoginRequestDTO {
 
     // Email field must not be blank and must follow a valid email format

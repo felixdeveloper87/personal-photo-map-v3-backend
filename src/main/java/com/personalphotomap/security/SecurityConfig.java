@@ -16,6 +16,22 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import java.util.List;
 
+/**
+ * SecurityConfig
+ *
+ * Central configuration class for Spring Security.
+ *
+ * Responsibilities:
+ * - Defines the security filter chain, enabling JWT-based stateless authentication.
+ * - Configures CORS settings to allow frontend access from specific origins.
+ * - Disables CSRF protection (not needed for stateless APIs).
+ * - Registers the custom JWT authentication filter before the standard username/password filter.
+ * - Sets up password encoder and authentication manager beans.
+ *
+ * This class ensures that only authenticated requests can access protected endpoints,
+ * while allowing open access to public routes such as login, registration, and image uploads.
+ */
+
 @Configuration
 public class SecurityConfig {
 
@@ -32,13 +48,10 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(authz -> authz
                         .requestMatchers("/api/auth/**", "/photomap").permitAll()
-                        .requestMatchers("/api/images/uploads/**").permitAll() // se soh user conectados podem abrir
-                                                                               // essa pagina, entao esse codigo eh
-                                                                               // inutil
+                        .requestMatchers("/api/images/uploads/**").permitAll() 
                         .requestMatchers("/api/images/**").authenticated()
                         .requestMatchers("/api/users").hasRole("ADMIN")
-                        .requestMatchers(org.springframework.http.HttpMethod.OPTIONS, "/**").permitAll() // Libera
-                                                                                                         // OPTIONS
+                        .requestMatchers(org.springframework.http.HttpMethod.OPTIONS, "/**").permitAll() 
                         .anyRequest().authenticated())
                 .sessionManagement(session -> session
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS));

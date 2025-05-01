@@ -15,10 +15,16 @@ import java.util.List;
 import java.util.NoSuchElementException;
 
 /**
+ * AlbumController
+ *
  * REST controller responsible for managing album-related operations.
- * Supports creation, retrieval (user-specific and public), and deletion of albums.
- * All endpoints that involve user data require a valid JWT token for authentication.
+ * 
+ * - Allows authenticated users to create and manage their own albums.
+ * - Supports public retrieval of albums by country.
+ * - Handles deletion and image retrieval for specific albums.
+ * - All user-specific endpoints require a valid JWT token for authentication.
  */
+
 @RestController
 @RequestMapping("/api/albums")
 public class AlbumController {

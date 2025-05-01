@@ -7,6 +7,7 @@ import java.util.List;
  * Data Transfer Object (DTO) used to return the result of an S3 file upload.
  * It encapsulates the list of public URLs of the uploaded images.
  */
+
 public class S3UploadResponseDTO {
 
     private List<String> imageUrls;

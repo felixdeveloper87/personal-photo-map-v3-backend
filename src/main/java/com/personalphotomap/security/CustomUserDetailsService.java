@@ -14,6 +14,7 @@ import org.springframework.stereotype.Service;
  * This service is essential when using Spring Security's authentication context
  * to validate and authorize users based on their credentials and roles.
  */
+
 @Service
 public class CustomUserDetailsService implements UserDetailsService {
 

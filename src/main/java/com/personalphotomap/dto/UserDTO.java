@@ -6,6 +6,7 @@ import com.personalphotomap.model.AppUser;
  * DTO used to transfer user data to the client side in a safe and controlled format.
  * Prevents exposing sensitive internal information (like passwords or tokens).
  */
+
 public class UserDTO {
     private Long id;
     private String fullname;

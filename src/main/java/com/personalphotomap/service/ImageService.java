@@ -18,6 +18,22 @@ import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
+/**
+ * ImageService
+ *
+ * Core service responsible for managing image-related operations for authenticated users.
+ *
+ * Responsibilities:
+ * - Handles upload of images to S3 and saves metadata to the database.
+ * - Provides methods to retrieve images by country, year, and user.
+ * - Supports asynchronous and secure deletion of single or multiple images.
+ * - Converts Image entities to DTOs for API responses.
+ * - Extracts and validates authenticated user from JWT tokens.
+ *
+ * This service acts as the main interface between the image controller layer and persistence layer,
+ * ensuring business logic is centralized and reusable.
+ */
+
 @Service
 public class ImageService {
 
@@ -150,6 +166,7 @@ public class ImageService {
      * Deletes multiple images by their IDs, if all belong to the authenticated
      * user.
      */
+
     public void deleteMultipleImages(List<Long> imageIds, String token) { // ✅
         AppUser user = getUserFromToken(token);
         List<Image> imagesToDelete = imageRepository.findAllById(imageIds);
@@ -174,6 +191,7 @@ public class ImageService {
     /**
      * Returns all images associated with a country for the authenticated user.
      */
+
     public List<ImageDTO> getImagesByCountry(String countryId, String token) { // ✅
         AppUser user = getUserFromToken(token);
         List<Image> images = imageRepository.findByCountryIdAndUserId(countryId, user.getId());
@@ -192,6 +210,7 @@ public class ImageService {
     /**
      * Returns a list of distinct years the user has uploaded photos for.
      */
+
     public List<Integer> getAvailableYears(String token) { // ✅
         AppUser user = getUserFromToken(token);
         return imageRepository.findDistinctYearsByUserId(user.getId());
@@ -200,6 +219,7 @@ public class ImageService {
     /**
      * Returns all images from the authenticated user, optionally filtered by year.
      */
+    
     public List<ImageDTO> getAllImages(String token, Integer year) { // ✅
         AppUser user = getUserFromToken(token);
 

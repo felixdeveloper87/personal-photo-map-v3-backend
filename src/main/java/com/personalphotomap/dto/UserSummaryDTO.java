@@ -1,5 +1,21 @@
 package com.personalphotomap.dto;
 
+/**
+ * UserSummaryDTO
+ *
+ * Data Transfer Object used exclusively for administrative purposes.
+ * 
+ * Provides summarized information about a user, including:
+ * - User ID
+ * - Full name
+ * - Email address
+ * - Country
+ * - Number of uploaded photos
+ *
+ * Intended for internal dashboards or admin endpoints only.
+ * Should not be exposed in public-facing APIs.
+ */
+
 public class UserSummaryDTO {
 
     private Long id;

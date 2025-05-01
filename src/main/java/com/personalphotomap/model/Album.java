@@ -10,6 +10,7 @@ import java.util.List;
  * Each album belongs to one user, is linked to a country,
  * and contains a list of images (many-to-many relationship).
  */
+
 @Entity
 @Table(name = "albums")
 public class Album {

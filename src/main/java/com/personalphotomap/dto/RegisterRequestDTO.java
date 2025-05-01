@@ -8,6 +8,7 @@ import jakarta.validation.constraints.Size;
  * DTO used to receive registration data from the client.
  * Includes validation constraints to ensure required fields and valid formats.
  */
+
 public class RegisterRequestDTO {
 
     // Full name must not be blank and must have at least 3 characters

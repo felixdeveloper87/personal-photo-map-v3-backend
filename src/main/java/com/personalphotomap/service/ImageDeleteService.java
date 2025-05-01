@@ -11,6 +11,22 @@ import org.springframework.stereotype.Service;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
+/**
+ * ImageDeleteService
+ *
+ * Service responsible for handling asynchronous and safe deletion of images.
+ *
+ * Responsibilities:
+ * - Removes image references from all associated albums.
+ * - Deletes albums that become empty after image removal.
+ * - Deletes image files from Amazon S3.
+ * - Deletes image records from the database.
+ * - Supports bulk deletion in parallel using CompletableFuture and @Async.
+ *
+ * This class is used to decouple deletion logic from the main ImageService,
+ * ensuring better separation of concerns and performance in batch operations.
+ */
+
 @Service
 public class ImageDeleteService {
 
@@ -27,7 +43,6 @@ public class ImageDeleteService {
     @Async
     public CompletableFuture<Void> deleteImage(Image image) {
         try {
-            // Remove de todos os álbuns
             List<Album> albums = albumRepository.findByImageId(image.getId());
             for (Album album : albums) {
                 if (album.getImages().removeIf(img -> img.getId().equals(image.getId()))) {
@@ -39,7 +54,6 @@ public class ImageDeleteService {
                 }
             }
 
-            // Remove do S3 e do banco
             s3Service.deleteFile(image.getFilePath());
             imageRepository.delete(image);
 

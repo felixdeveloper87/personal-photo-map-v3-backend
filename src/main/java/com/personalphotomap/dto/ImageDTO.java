@@ -3,12 +3,21 @@ package com.personalphotomap.dto;
 import java.time.LocalDateTime;
 
 /**
- * DTO used to expose public information about images
- * without exposing internal entity references or sensitive data.
+ * ImageDTO
  *
- * This class is essential for separating the persistence layer (Image entity)
- * from the data sent over the network, providing a clean API contract.
+ * Data Transfer Object used to expose image data to the client in a safe and structured way.
+ *
+ * Contains:
+ * - Image ID
+ * - Country ID (ISO)
+ * - File name and file path
+ * - Associated year
+ * - Upload date and time
+ *
+ * Used in responses to ensure separation between entity and exposed data.
  */
+
+
 public class ImageDTO {
 
     // Unique identifier of the image

@@ -8,6 +8,17 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.util.*;
 
+/**
+ * ImageController
+ *
+ * REST controller responsible for handling image-related operations.
+ *
+ * - Allows authenticated users to upload, retrieve, and delete images.
+ * - All endpoints return data as JSON, enabled by the @RestController annotation.
+ * - Uses JWT from Authorization header to validate and identify users.
+ * - Supports operations by country, year, and image ID, including batch deletions.
+ */
+
 @RestController
 @RequestMapping("/api/images")
 public class ImageController {

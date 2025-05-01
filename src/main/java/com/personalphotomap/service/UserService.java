@@ -9,7 +9,6 @@ import com.personalphotomap.dto.UserSummaryDTO;
 import com.personalphotomap.repository.ImageRepository;
 import com.personalphotomap.repository.UserRepository;
 import com.personalphotomap.security.JwtUtil;
-import com.personalphotomap.dto.UserSummaryDTO;
 
 import jakarta.transaction.Transactional;
 

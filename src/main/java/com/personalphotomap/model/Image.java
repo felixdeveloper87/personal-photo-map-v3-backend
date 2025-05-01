@@ -10,6 +10,7 @@ import com.fasterxml.jackson.annotation.JsonBackReference;
  * Each image is associated with one user and contains metadata such as
  * file path, country, upload date, and year.
  */
+
 @Entity
 @Table(name = "images", indexes = {
         @Index(name = "idx_images_user", columnList = "user_id"),

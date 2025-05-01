@@ -1,8 +1,21 @@
 package com.personalphotomap.dto;
 
 /**
- * DTO for sending album data to the client in a secure and structured way.
+ * AlbumResponseDTO
+ *
+ * Data Transfer Object used to send album data back to the client in a structured and secure format.
+ *
+ * Contains:
+ * - Album ID
+ * - Album name
+ * - Country ID (associated with the album)
+ * - User ID (owner of the album)
+ * - Number of images in the album
+ *
+ * Used primarily in responses from AlbumController endpoints.
  */
+
+
 public class AlbumResponseDTO {
 
     private Long id;

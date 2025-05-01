@@ -5,11 +5,21 @@ import jakarta.validation.constraints.NotEmpty;
 import java.util.List;
 
 /**
- * DTO for receiving album creation requests from the client.
+ * AlbumRequestDTO
+ *
+ * Data Transfer Object used to receive album creation requests from the client.
+ *
+ * Contains:
+ * - Album name (required)
+ * - Country ID (required)
+ * - List of image IDs to associate with the album (at least one required)
+ *
+ * Used in the AlbumController to validate and process album creation.
  */
+
 public class AlbumRequestDTO {
 
-    @NotBlank(message = "Album name is required")
+    @NotBlank(message = "Album name is required") 
     private String albumName;
 
     @NotBlank(message = "Country ID is required")

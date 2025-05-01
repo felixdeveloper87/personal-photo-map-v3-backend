@@ -23,6 +23,7 @@ import java.util.List;
  * This filter runs once per request and sets the authenticated user in the
  * Spring Security context if the token is valid.
  */
+
 @Component
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 

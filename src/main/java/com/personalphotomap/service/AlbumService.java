@@ -18,6 +18,7 @@ import java.util.*;
  * Service layer responsible for handling business logic related to albums,
  * including creation, retrieval, deletion, and user validation.
  */
+
 @Service
 public class AlbumService {
 
@@ -47,6 +48,7 @@ public class AlbumService {
      * @throws SecurityException if the token is invalid
      * @throws NoSuchElementException if the user cannot be found
      */
+
     private AppUser getUserFromToken(String token) {
         if (token == null || !token.startsWith("Bearer ")) {
             throw new SecurityException("Invalid token format");
@@ -70,6 +72,7 @@ public class AlbumService {
      * @return AlbumResponseDTO representing the created album
      * @throws IllegalArgumentException if the request contains invalid or empty image IDs
      */
+
     public AlbumResponseDTO createAlbumFromRequest(AlbumRequestDTO request, String token) {
         AppUser user = getUserFromToken(token);
 
@@ -97,6 +100,7 @@ public class AlbumService {
      * @param token JWT token used for authentication
      * @return List of AlbumResponseDTOs belonging to the user
      */
+
     public List<AlbumResponseDTO> getAlbumsByUserDTO(String token) {
         AppUser user = getUserFromToken(token);
         List<Album> albums = albumRepository.findByUser(user);
@@ -110,6 +114,7 @@ public class AlbumService {
      * @param token JWT token used for authentication
      * @return List of AlbumResponseDTOs filtered by country
      */
+
     public List<AlbumResponseDTO> getAlbumsByCountryAndUserDTO(String countryId, String token) {
         AppUser user = getUserFromToken(token);
         List<Album> albums = albumRepository.findByCountryIdAndUser(countryId, user);
@@ -123,6 +128,7 @@ public class AlbumService {
      * @param countryId Country ISO code
      * @return List of AlbumResponseDTOs related to the country
      */
+
     public List<AlbumResponseDTO> getAlbumsByCountryDTO(String countryId) {
         List<Album> albums = albumRepository.findByCountryId(countryId);
         return convertToDTOList(albums);
@@ -135,6 +141,7 @@ public class AlbumService {
      * @return List of ImageDTOs belonging to the album
      * @throws NoSuchElementException if the album is not found
      */
+
     public List<ImageDTO> getImagesByAlbumDTO(Long albumId) {
         Album album = albumRepository.findById(albumId)
                 .orElseThrow(() -> new NoSuchElementException("Album not found"));
@@ -151,6 +158,7 @@ public class AlbumService {
      * @throws SecurityException if the album does not belong to the authenticated user
      * @throws NoSuchElementException if the album is not found
      */
+
     public void deleteAlbum(Long albumId, String token) {
         AppUser user = getUserFromToken(token);
 
@@ -172,6 +180,7 @@ public class AlbumService {
      * @param album Album to validate
      * @throws SecurityException if ownership does not match
      */
+
     private void validateAlbumOwnership(AppUser user, Album album) {
         if (!album.getUser().getId().equals(user.getId())) {
             throw new SecurityException("You are not authorized to delete this album");
@@ -184,6 +193,7 @@ public class AlbumService {
      *
      * @return List of all albums converted to AlbumResponseDTO
      */
+
     public List<AlbumResponseDTO> getAllAlbumsDTO() {
         List<Album> albums = albumRepository.findAll();
         return convertToDTOList(albums);
@@ -195,6 +205,7 @@ public class AlbumService {
      * @param album Album entity
      * @return DTO representation of the album
      */
+
     public AlbumResponseDTO convertToDTO(Album album) {
         return new AlbumResponseDTO(
                 album.getId(),
@@ -211,6 +222,7 @@ public class AlbumService {
      * @param albums List of Album entities
      * @return List of DTOs
      */
+    
     public List<AlbumResponseDTO> convertToDTOList(List<Album> albums) {
         return albums.stream()
                 .map(this::convertToDTO)

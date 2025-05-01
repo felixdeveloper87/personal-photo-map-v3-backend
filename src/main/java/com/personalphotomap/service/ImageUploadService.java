@@ -17,6 +17,21 @@ import java.io.IOException;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
+/**
+ * ImageUploadService
+ *
+ * Service responsible for handling asynchronous image uploads to Amazon S3.
+ *
+ * Responsibilities:
+ * - Validates uploaded files using Apache Tika (accepts only JPEG).
+ * - Renames files using UUID to ensure uniqueness.
+ * - Uploads images to S3 storage.
+ * - Persists image metadata (e.g. country, user, year, path) in the database.
+ * - Uses @Async and CompletableFuture to support parallel uploads.
+ *
+ * Designed to be called from ImageService, separating file handling from core logic.
+ */
+
 @Service
 public class ImageUploadService {
 
@@ -33,35 +48,25 @@ public class ImageUploadService {
         String threadName = Thread.currentThread().getName();
 
         try {
-            logger.info("🚀 Iniciando upload da imagem: {} na thread: {}", file.getOriginalFilename(), threadName);
-            System.out.println(
-                    "🚀 [DEBUG] Iniciando upload de: " + file.getOriginalFilename() + " na thread: " + threadName);
+            logger.info("Starting image upload: {} on thread: {}", file.getOriginalFilename(), threadName);
 
-            // Validação do tipo de arquivo
+            // File type validation
             String mimeType = tika.detect(file.getInputStream());
             if (!mimeType.equalsIgnoreCase("image/jpeg")) {
-                logger.warn("⚠️ Arquivo inválido detectado: {} | MIME Type: {}", file.getOriginalFilename(), mimeType);
-                System.out.println(
-                        "⚠️ [DEBUG] Arquivo inválido: " + file.getOriginalFilename() + " | MIME Type: " + mimeType);
+                logger.warn("Invalid file detected: {} | MIME Type: {}", file.getOriginalFilename(), mimeType);
                 return CompletableFuture.completedFuture(null);
             }
 
-            // Criar nome único para a imagem
+            // Generate unique file name
             String fileName = UUID.randomUUID().toString() + "_" + StringUtils.cleanPath(file.getOriginalFilename());
 
-            // Simulação de tempo de upload para testar concorrência (remova isso em
-            // produção)
-            Thread.sleep(1000);
-
-            // Upload para o S3
+            // Upload to S3
             String fileUrl = s3Service.uploadFile(file, fileName);
 
-            logger.info("✅ Upload concluído: {} | URL: {} | Thread: {}", file.getOriginalFilename(), fileUrl,
+            logger.info("✅ Upload complete: {} | URL: {} | Thread: {}", file.getOriginalFilename(), fileUrl,
                     threadName);
-            System.out.println("✅ [DEBUG] Upload concluído para: " + file.getOriginalFilename() + " | URL: " + fileUrl
-                    + " | Thread: " + threadName);
 
-            // Salvar metadados no banco de dados
+            // Save image metadata to the database
             Image image = new Image();
             image.setUser(user);
             image.setCountryId(countryId);
@@ -71,10 +76,8 @@ public class ImageUploadService {
             imageRepository.save(image);
 
             return CompletableFuture.completedFuture(fileUrl);
-        } catch (IOException | InterruptedException e) {
-            logger.error("❌ Erro no upload da imagem: {}", file.getOriginalFilename(), e);
-            System.err.println(
-                    "❌ [DEBUG] Erro ao processar: " + file.getOriginalFilename() + " | Erro: " + e.getMessage());
+        } catch (IOException e) {
+            logger.error("Image upload error: {}", file.getOriginalFilename(), e);
             return CompletableFuture.failedFuture(e);
         }
     }

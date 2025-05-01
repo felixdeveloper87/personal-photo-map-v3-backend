@@ -13,9 +13,15 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Authentication controller responsible for handling user login,
- * registration, role updates, and user administration functionalities.
+ * AuthController
+ *
+ * REST controller responsible for handling user authentication and management.
+ * 
+ * - Provides endpoints for login, registration, role upgrade, and administrative deletion.
+ * - All responses are returned as JSON, enabled by the @RestController annotation.
+ * - No view rendering is used — suitable for RESTful APIs.
  */
+
 @RestController
 @RequestMapping("/api/auth")
 public class AuthController {

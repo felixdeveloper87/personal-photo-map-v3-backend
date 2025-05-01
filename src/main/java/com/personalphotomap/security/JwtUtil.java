@@ -9,6 +9,20 @@ import java.security.Key;
 import java.util.Date;
 import java.util.function.Function;
 
+/**
+ * JwtUtil
+ *
+ * Utility class responsible for handling JSON Web Token (JWT) operations.
+ *
+ * Core responsibilities:
+ * - Generate signed tokens using a secret key
+ * - Extract claims such as subject (username/email) and expiration date
+ * - Validate tokens against expiration and username
+ *
+ * This class encapsulates the logic used for stateless authentication via JWT.
+ * Configured with a secret defined in application properties.
+ */
+
 @Component
 public class JwtUtil {
 
@@ -20,6 +34,7 @@ public class JwtUtil {
      *
      * @param secret the secret key used for signing the JWT
      */
+
     public JwtUtil(@Value("${jwt.secret}") String secret) {
         this.key = Keys.hmacShaKeyFor(secret.getBytes());
     }
